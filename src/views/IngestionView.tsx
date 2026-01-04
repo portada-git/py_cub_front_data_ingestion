@@ -287,10 +287,11 @@ const IngestionView: React.FC = () => {
           <p className="text-blue-200 font-medium mb-1">
             Instrucciones de Carga
           </p>
-          Asegúrate de que el archivo JSON contenga el array de registros
-          principal y el archivo YAML defina las entidades con sus respectivos
-          identificadores únicos. El sistema validará la estructura antes de
-          iniciar el análisis profundo.
+          Asegúrate de que el archivo de Raw Data (JSON o YAML) contenga el
+          array de registros principal y el archivo de Entidades Conocidas
+          (YAML) defina las entidades con sus respectivos identificadores
+          únicos. El sistema validará la estructura antes de iniciar el análisis
+          profundo.
         </div>
       </div>
     </div>
