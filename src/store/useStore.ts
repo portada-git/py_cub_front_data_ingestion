@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AuthStatus, User, AnalysisResult } from '../types';
+import type { AuthStatus, User, AnalysisResult } from '../types';
 
 interface AppState {
   authStatus: AuthStatus;
