@@ -41,9 +41,14 @@ const IngestionView: React.FC = () => {
       setRawFile(file);
       simulateUpload("raw");
     } else {
-      if (file && !file.name.endsWith(".yml") && !file.name.endsWith(".yaml")) {
+      if (
+        file &&
+        !file.name.endsWith(".json") &&
+        !file.name.endsWith(".yml") &&
+        !file.name.endsWith(".yaml")
+      ) {
         alert(
-          "Por favor, selecciona un archivo .yml o .yaml para Entidades Conocidas"
+          "Por favor, selecciona un archivo .json, .yml o .yaml para Entidades Conocidas"
         );
         return;
       }
@@ -201,7 +206,7 @@ const IngestionView: React.FC = () => {
                 Entidades Conocidas
               </h3>
               <p className="text-slate-400 text-sm">
-                Solo archivos .yml / .yaml
+                Archivos .json / .yml / .yaml
               </p>
             </div>
           </div>
@@ -229,7 +234,7 @@ const IngestionView: React.FC = () => {
             <input
               type="file"
               className="hidden"
-              accept=".yml,.yaml"
+              accept=".json,.yml,.yaml"
               onChange={(e) => handleFileChange(e, "entity")}
             />
           </label>
