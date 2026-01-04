@@ -29,7 +29,12 @@ const IngestionView: React.FC = () => {
   ) => {
     const file = e.target.files?.[0] || null;
     if (type === "raw") {
-      if (file && !file.name.endsWith(".json") && !file.name.endsWith(".yml") && !file.name.endsWith(".yaml")) {
+      if (
+        file &&
+        !file.name.endsWith(".json") &&
+        !file.name.endsWith(".yml") &&
+        !file.name.endsWith(".yaml")
+      ) {
         alert("Por favor, selecciona un archivo .json o .yaml para Raw Data");
         return;
       }
@@ -127,11 +132,13 @@ const IngestionView: React.FC = () => {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-500/10 rounded-xl">
-              <FileJson className="w-8 h-8 text-blue-400" />
+              <FileText className="w-8 h-8 text-blue-400" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">Raw Data</h3>
-              <p className="text-slate-400 text-sm">Solo archivos .json</p>
+              <p className="text-slate-400 text-sm">
+                Archivos .json / .yml / .yaml
+              </p>
             </div>
           </div>
 
@@ -158,7 +165,7 @@ const IngestionView: React.FC = () => {
             <input
               type="file"
               className="hidden"
-              accept=".json"
+              accept=".json,.yml,.yaml"
               onChange={(e) => handleFileChange(e, "raw")}
             />
           </label>
