@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# PortAda Backend Startup Script
+
+echo "Starting PortAda Backend API..."
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+fi
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install dependencies
+echo "Installing dependencies..."
+pip install -r requirements.txt
+
+# Create data directory if it doesn't exist
+mkdir -p /tmp/portada_data
+
+# Start the server
+echo "Starting FastAPI server..."
+python main.py
