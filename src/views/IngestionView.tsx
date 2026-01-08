@@ -1,78 +1,69 @@
 import React, { useState } from "react";
 import {
-  FileJson,
-  FileCode,
   Upload,
   AlertCircle,
   Loader2,
   Play,
   FileText,
+  ChevronDown,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { clsx } from "clsx";
 import type { AnalysisResult } from "../types";
-import yaml from "js-yaml";
+
+type IngestionType = "extraction" | "known_entities";
 
 const IngestionView: React.FC = () => {
   const { setIsProcessing, setAnalysisResult, isProcessing } = useStore();
 
-  const [rawFile, setRawFile] = useState<File | null>(null);
-  const [entityFile, setEntityFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<{
-    raw: number;
-    entity: number;
-  }>({ raw: 0, entity: 0 });
+  const [ingestionType, setIngestionType] = useState<IngestionType>("extraction");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "raw" | "entity"
-  ) => {
-    const file = e.target.files?.[0] || null;
-    if (type === "raw") {
-      if (
-        file &&
-        !file.name.endsWith(".json") &&
-        !file.name.endsWith(".yml") &&
-        !file.name.endsWith(".yaml")
-      ) {
-        alert("Por favor, selecciona un archivo .json o .yaml para Raw Data");
-        return;
-      }
-      setRawFile(file);
-      simulateUpload("raw");
-    } else {
-      if (
-        file &&
-        !file.name.endsWith(".json") &&
-        !file.name.endsWith(".yml") &&
-        !file.name.endsWith(".yaml")
-      ) {
-        alert(
-          "Por favor, selecciona un archivo .json, .yml o .yaml para Entidades Conocidas"
-        );
-        return;
-      }
-      setEntityFile(file);
-      simulateUpload("entity");
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    
+    if (!selectedFile) return;
+
+    // Validar tipo de archivo según el tipo de ingestión
+    const validExtensions = ingestionType === "extraction" 
+      ? [".json", ".yml", ".yaml"]
+      : [".json", ".yml", ".yaml"];
+    
+    const isValidFile = validExtensions.some(ext => 
+      selectedFile.name.toLowerCase().endsWith(ext)
+    );
+
+    if (!isValidFile) {
+      setUploadStatus("error");
+      alert(`Por favor, selecciona un archivo válido (${validExtensions.join(", ")})`);
+      return;
     }
+
+    setFile(selectedFile);
+    simulateUpload();
   };
 
-  const simulateUpload = (type: "raw" | "entity") => {
+  const simulateUpload = () => {
+    setUploadStatus("uploading");
     let progress = 0;
     const interval = setInterval(() => {
       progress += 10;
-      setUploadProgress((prev) => ({ ...prev, [type]: progress }));
-      if (progress >= 100) clearInterval(interval);
+      setUploadProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setUploadStatus("success");
+      }
     }, 100);
   };
 
   const handleProcess = () => {
-    if (!rawFile || !entityFile) return;
+    if (!file) return;
 
     setIsProcessing(true);
-
-    // Nota: Para archivos YAML muy grandes, se recomienda usar un Web Worker
-    // para no bloquear el hilo principal de la UI durante el parseo.
 
     // Simulación de llamada a FastAPI
     setTimeout(() => {
@@ -132,141 +123,114 @@ const IngestionView: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Raw Data Zone */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-500/10 rounded-xl">
-              <FileText className="w-8 h-8 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">Raw Data</h3>
-              <p className="text-slate-400 text-sm">
-                Archivos .json / .yml / .yaml
-              </p>
-            </div>
-          </div>
-
-          <label
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all",
-              rawFile
-                ? "border-blue-500/50 bg-blue-500/5"
-                : "border-slate-700 hover:border-slate-600 bg-slate-800/50"
-            )}
+      {/* Ingestion Type Selection */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 className="text-xl font-bold text-white mb-4">Tipo de Carga de Datos</h2>
+        <div className="relative">
+          <select
+            value={ingestionType}
+            onChange={(e) => setIngestionType(e.target.value as IngestionType)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer"
           >
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <option value="extraction">Extracción</option>
+            <option value="known_entities">Entidades Conocidas</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+        </div>
+        <p className="text-slate-400 text-sm mt-2">
+          {ingestionType === "extraction" 
+            ? "Carga de datos de extracción desde archivos JSON/YAML"
+            : "Carga de entidades conocidas desde archivos JSON/YAML"
+          }
+        </p>
+      </div>
+
+      {/* File Upload Zone */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 rounded-xl">
+            <FileText className="w-8 h-8 text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">
+              {ingestionType === "extraction" ? "Datos de Extracción" : "Entidades Conocidas"}
+            </h3>
+            <p className="text-slate-400 text-sm">
+              Archivos .json / .yml / .yaml
+            </p>
+          </div>
+        </div>
+
+        <label
+          className={clsx(
+            "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all",
+            file
+              ? "border-blue-500/50 bg-blue-500/5"
+              : "border-slate-700 hover:border-slate-600 bg-slate-800/50"
+          )}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            {uploadStatus === "success" ? (
+              <CheckCircle className="w-10 h-10 mb-3 text-green-400" />
+            ) : uploadStatus === "error" ? (
+              <XCircle className="w-10 h-10 mb-3 text-red-400" />
+            ) : uploadStatus === "uploading" ? (
+              <Loader2 className="w-10 h-10 mb-3 text-blue-400 animate-spin" />
+            ) : (
               <Upload
                 className={clsx(
                   "w-10 h-10 mb-3",
-                  rawFile ? "text-blue-400" : "text-slate-500"
+                  file ? "text-blue-400" : "text-slate-500"
                 )}
               />
-              <p className="mb-2 text-sm text-slate-300">
-                <span className="font-semibold">Click para subir</span> o
-                arrastra y suelta
-              </p>
-            </div>
-            <input
-              type="file"
-              className="hidden"
-              accept=".json,.yml,.yaml"
-              onChange={(e) => handleFileChange(e, "raw")}
-            />
-          </label>
+            )}
+            <p className="mb-2 text-sm text-slate-300">
+              <span className="font-semibold">Click para subir</span> o
+              arrastra y suelta
+            </p>
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            accept=".json,.yml,.yaml"
+            onChange={handleFileChange}
+          />
+        </label>
 
-          {rawFile && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-300 truncate max-w-[200px]">
-                  {rawFile.name}
-                </span>
-                <span className="text-blue-400 font-medium">
-                  {uploadProgress.raw}%
-                </span>
-              </div>
+        {file && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-300 truncate max-w-[200px]">
+                {file.name}
+              </span>
+              <span className={clsx(
+                "font-medium",
+                uploadStatus === "success" ? "text-green-400" : 
+                uploadStatus === "error" ? "text-red-400" : "text-blue-400"
+              )}>
+                {uploadStatus === "success" ? "Completado" :
+                 uploadStatus === "error" ? "Error" : `${uploadProgress}%`}
+              </span>
+            </div>
+            {uploadStatus === "uploading" && (
               <div className="w-full bg-slate-800 rounded-full h-2">
                 <div
                   className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress.raw}%` }}
+                  style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Known Entities Zone */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-500/10 rounded-xl">
-              <FileCode className="w-8 h-8 text-indigo-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                Entidades Conocidas
-              </h3>
-              <p className="text-slate-400 text-sm">
-                Archivos .json / .yml / .yaml
-              </p>
-            </div>
-          </div>
-
-          <label
-            className={clsx(
-              "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all",
-              entityFile
-                ? "border-indigo-500/50 bg-indigo-500/5"
-                : "border-slate-700 hover:border-slate-600 bg-slate-800/50"
             )}
-          >
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Upload
-                className={clsx(
-                  "w-10 h-10 mb-3",
-                  entityFile ? "text-indigo-400" : "text-slate-500"
-                )}
-              />
-              <p className="mb-2 text-sm text-slate-300">
-                <span className="font-semibold">Click para subir</span> o
-                arrastra y suelta
-              </p>
-            </div>
-            <input
-              type="file"
-              className="hidden"
-              accept=".json,.yml,.yaml"
-              onChange={(e) => handleFileChange(e, "entity")}
-            />
-          </label>
-
-          {entityFile && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-300 truncate max-w-[200px]">
-                  {entityFile.name}
-                </span>
-                <span className="text-indigo-400 font-medium">
-                  {uploadProgress.entity}%
-                </span>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-2">
-                <div
-                  className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress.entity}%` }}
-                ></div>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-center pt-4">
         <button
           onClick={handleProcess}
-          disabled={!rawFile || !entityFile || isProcessing}
+          disabled={!file || uploadStatus !== "success" || isProcessing}
           className={clsx(
             "flex items-center gap-3 px-10 py-4 rounded-xl font-bold text-lg transition-all shadow-lg",
-            !rawFile || !entityFile || isProcessing
+            !file || uploadStatus !== "success" || isProcessing
               ? "bg-slate-800 text-slate-500 cursor-not-allowed"
               : "bg-blue-600 text-white hover:bg-blue-500 hover:shadow-blue-500/20 active:scale-95"
           )}
@@ -292,11 +256,9 @@ const IngestionView: React.FC = () => {
           <p className="text-blue-200 font-medium mb-1">
             Instrucciones de Carga
           </p>
-          Asegúrate de que el archivo de Raw Data (JSON o YAML) contenga el
-          array de registros principal y el archivo de Entidades Conocidas
-          (YAML) defina las entidades con sus respectivos identificadores
-          únicos. El sistema validará la estructura antes de iniciar el análisis
-          profundo.
+          El proceso de ingestión es asíncrono. Una vez subido el archivo, 
+          recibirás una confirmación inmediata, pero el procesamiento continuará 
+          en segundo plano. Los resultados estarán disponibles en la sección de Análisis.
         </div>
       </div>
     </div>

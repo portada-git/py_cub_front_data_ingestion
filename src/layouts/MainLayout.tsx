@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   UploadCloud,
@@ -6,6 +6,12 @@ import {
   Database,
   BarChart3,
   User as UserIcon,
+  ChevronDown,
+  ChevronRight,
+  Calendar,
+  Copy,
+  Archive,
+  Settings,
 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { clsx } from "clsx";
@@ -18,6 +24,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useStore();
+  
+  const isAnalysisActive = location.pathname.startsWith("/analysis");
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+
+  // Keep analysis dropdown open when on analysis pages
+  const shouldShowAnalysisOpen = isAnalysisOpen || isAnalysisActive;
 
   const handleLogout = () => {
     logout();
@@ -26,7 +38,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const navItems = [
     { name: "Carga de Datos", path: "/ingestion", icon: UploadCloud },
-    { name: "Análisis", path: "/analysis", icon: BarChart3 },
+  ];
+
+  const analysisItems = [
+    { name: "Fechas Faltantes", path: "/analysis/missing-dates", icon: Calendar },
+    { name: "Duplicados", path: "/analysis/duplicates", icon: Copy },
+    { name: "Metadatos de Almacenaje", path: "/analysis/storage-metadata", icon: Archive },
+    { name: "Metadatos de Procesos", path: "/analysis/process-metadata", icon: Settings },
   ];
 
   return (
@@ -58,6 +76,47 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <span className="font-medium">{item.name}</span>
             </Link>
           ))}
+
+          {/* Analysis Dropdown */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsAnalysisOpen(!isAnalysisOpen)}
+              className={clsx(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                isAnalysisActive
+                  ? "bg-blue-600/10 text-blue-400 border border-blue-600/20"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              )}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="font-medium flex-1 text-left">Análisis</span>
+              {shouldShowAnalysisOpen ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+
+            {shouldShowAnalysisOpen && (
+              <div className="ml-4 space-y-1">
+                {analysisItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={clsx(
+                      "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm",
+                      location.pathname === item.path
+                        ? "bg-blue-600/10 text-blue-400 border border-blue-600/20"
+                        : "text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800">
@@ -96,8 +155,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm flex items-center justify-between px-8">
           <h2 className="text-lg font-semibold text-white">
-            {navItems.find((i) => i.path === location.pathname)?.name ||
-              "Dashboard"}
+            {location.pathname === "/ingestion" ? "Carga de Datos" :
+             location.pathname.startsWith("/analysis") ? "Análisis" : "Dashboard"}
           </h2>
           <div className="flex items-center gap-4">
             <div className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded border border-slate-700">
