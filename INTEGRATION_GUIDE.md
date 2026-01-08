@@ -8,7 +8,8 @@
 │   │   ├── views/     # Analysis and ingestion views
 │   │   ├── services/  # API integration layer
 │   │   └── ...
-│   └── package.json
+│   ├── package.json
+│   └── Dockerfile     # Frontend container
 ├── backend/           # FastAPI Python application
 │   ├── app/
 │   │   ├── api/routes/     # API endpoints
@@ -16,52 +17,93 @@
 │   │   ├── models/         # Pydantic models
 │   │   └── core/           # Configuration
 │   ├── main.py        # FastAPI app entry point
-│   └── requirements.txt
-└── docs/              # Documentation
+│   ├── pyproject.toml # UV dependencies
+│   ├── start.sh       # Local startup script
+│   └── Dockerfile     # Backend container
+├── docs/              # Documentation
+├── docker-compose.yml     # Production Docker setup
+├── docker-compose.dev.yml # Development Docker setup
+└── docker-run.sh          # Docker management script
 ```
+
+## 🐳 Docker Setup
+
+The project includes complete Docker containerization for both development and production environments.
+
+### Development Environment
+
+- **Hot reload** enabled for both frontend and backend
+- **Volume mounts** for live code changes
+- **Automatic dependency installation**
+- **Health checks** for service monitoring
+
+### Production Environment
+
+- **Optimized builds** for performance
+- **Multi-stage builds** for smaller images
+- **Security hardening**
+- **Persistent data volumes**
 
 ## 🚀 Quick Start
 
-### 1. Backend Setup
+### Option 1: Local Development
+
+#### 1. Backend Setup
 
 ```bash
 cd backend
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate     # Windows
+# Install UV if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install PortAda library (follow your specific instructions)
-# pip install portada-builder  # or your specific installation method
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your PortAda configuration
-
-# Start backend
-python main.py
+# Sync dependencies and start backend
+./start.sh
+# or manually:
+uv sync --no-build
+uv run python main.py
 ```
 
-### 2. Frontend Setup
+#### 2. Frontend Setup
 
 ```bash
 cd frontend
 
 # Install dependencies
-npm install
-# or
 bun install
 
 # Start development server
-npm run dev
-# or
-bun dev
+bun run dev
 ```
+
+### Option 2: Docker Compose (Recommended)
+
+#### Quick Start with Docker
+
+```bash
+# Start development environment
+./docker-run.sh dev
+
+# Or manually:
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+#### Available Docker Commands
+
+```bash
+./docker-run.sh dev     # Start development environment
+./docker-run.sh prod    # Start production environment  
+./docker-run.sh stop    # Stop all services
+./docker-run.sh logs    # Show logs
+./docker-run.sh clean   # Clean up containers and volumes
+./docker-run.sh build   # Build all images
+```
+
+#### Access Points
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/api/docs
+- **ReDoc**: http://localhost:8000/api/redoc
 
 ## 🔧 PortAda Library Integration
 
