@@ -4,10 +4,15 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (including Java for PySpark)
 RUN apt-get update && apt-get install -y \
     curl \
+    git \
+    default-jdk \
     && rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME for PySpark
+ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 # Install UV
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -19,8 +24,8 @@ COPY .env ./
 COPY main.py ./
 COPY app/ ./app/
 
-# Install Python dependencies
-RUN uv sync --no-build
+# Install Python dependencies (allow building from source for pyspark)
+RUN uv sync
 
 # Create data directory
 RUN mkdir -p /app/data
