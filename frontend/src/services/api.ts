@@ -154,10 +154,10 @@ class ApiService {
   }
 
   // Authentication
-  async login(username: string, password: string) {
-    return this.request<{access_token: string; token_type: string; user: any}>('/auth/login', {
+  async login(username: string) {
+    return this.request<{success: boolean; user: any}>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username }),
     });
   }
 

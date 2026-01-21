@@ -72,12 +72,13 @@ class PortAdaService:
             self._metadata_manager = DataLakeMetadataManager(layer_news.get_configuration())
         return self._metadata_manager
 
-    async def ingest_extraction_data(self, file_path: str, data_path_delta_lake: str = "ship_entries") -> Dict[str, Any]:
+    async def ingest_extraction_data(self, file_path: str, newspaper: Optional[str] = None, data_path_delta_lake: str = "ship_entries") -> Dict[str, Any]:
         """
         Ingest extraction data from JSON file
         
         Args:
             file_path: Path to the JSON file
+            newspaper: Newspaper identifier (e.g., "db", "dm", "sm")
             data_path_delta_lake: Destination path in delta lake
             
         Returns:
@@ -92,14 +93,20 @@ class PortAdaService:
                 data = json.loads(content)
                 record_count = len(data) if isinstance(data, list) else 1
             
+            # Build destination path with newspaper if provided
+            if newspaper:
+                destination_path = f"{data_path_delta_lake}/{newspaper}"
+            else:
+                destination_path = data_path_delta_lake
+            
             # Perform ingestion using PortAda library
             # Note: This operation may delete the source file
-            layer_news.ingest(data_path_delta_lake, local_path=file_path)
+            layer_news.ingest(destination_path, local_path=file_path)
             
             return {
                 "success": True,
                 "records_processed": record_count,
-                "message": f"Successfully ingested {record_count} records to {data_path_delta_lake}"
+                "message": f"Successfully ingested {record_count} records to {destination_path}"
             }
             
         except Exception as e:

@@ -8,20 +8,32 @@ import {
   ChevronDown,
   CheckCircle,
   XCircle,
+  Newspaper,
 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { clsx } from "clsx";
 import type { AnalysisResult } from "../types";
+import newspapersData from "../data/newspapers.json";
 
 type IngestionType = "extraction" | "known_entities";
+
+interface Newspaper {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+}
 
 const IngestionView: React.FC = () => {
   const { setIsProcessing, setAnalysisResult, isProcessing } = useStore();
 
   const [ingestionType, setIngestionType] = useState<IngestionType>("extraction");
+  const [selectedNewspaper, setSelectedNewspaper] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
+
+  const newspapers: Newspaper[] = newspapersData.newspapers;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -60,65 +72,53 @@ const IngestionView: React.FC = () => {
     }, 100);
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     if (!file) return;
+    
+    // Validate newspaper selection for extraction type
+    if (ingestionType === "extraction" && !selectedNewspaper) {
+      alert("Por favor, selecciona un periódico antes de procesar.");
+      return;
+    }
 
     setIsProcessing(true);
 
-    // Simulación de llamada a FastAPI
-    setTimeout(() => {
-      const mockResult: AnalysisResult = {
-        metrics: {
-          totalRecords: 1250,
-          detectedEntities: 48,
-          errors: 3,
-        },
-        missingDates: [
-          { date: "2023-10-12", gap: "24h" },
-          { date: "2023-10-15", gap: "12h" },
-          { date: "2023-11-02", gap: "48h" },
-        ],
-        metadata: [
-          { id: "1", key: "version", value: "2.4.0", source: "raw_header" },
-          {
-            id: "2",
-            key: "environment",
-            value: "production",
-            source: "config_yml",
-          },
-          {
-            id: "3",
-            key: "region",
-            value: "eu-west-1",
-            source: "metadata_ext",
-          },
-        ],
-        knownEntities: [
-          {
-            id: "e1",
-            name: "Sensor_Alpha_01",
-            type: "IoT_Device",
-            linkedTo: ["Zone_A", "Gateway_01"],
-          },
-          {
-            id: "e2",
-            name: "User_Admin_Global",
-            type: "Identity",
-            linkedTo: ["Auth_Service"],
-          },
-          {
-            id: "e3",
-            name: "Database_Cluster_Main",
-            type: "Infrastructure",
-            linkedTo: ["AWS_RDS"],
-          },
-        ],
-      };
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("ingestion_type", ingestionType);
+      
+      // Add newspaper parameter for extraction type
+      if (ingestionType === "extraction" && selectedNewspaper) {
+        formData.append("newspaper", selectedNewspaper);
+      }
 
-      setAnalysisResult(mockResult);
+      const response = await fetch("http://localhost:8000/api/ingestion/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
       setIsProcessing(false);
-      alert("Datos procesados con éxito. Dirígete a la pestaña de Análisis.");
-    }, 2000);
+      alert(`Datos procesados con éxito. Task ID: ${result.task_id}\nDirígete a la pestaña de Análisis.`);
+      
+      // Reset form
+      setFile(null);
+      setUploadStatus("idle");
+      setUploadProgress(0);
+      if (ingestionType === "extraction") {
+        setSelectedNewspaper("");
+      }
+      
+    } catch (error) {
+      setIsProcessing(false);
+      alert(`Error al procesar los datos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   };
 
   return (
@@ -144,6 +144,39 @@ const IngestionView: React.FC = () => {
           }
         </p>
       </div>
+
+      {/* Newspaper Selection - Only for extraction type */}
+      {ingestionType === "extraction" && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-500/10 rounded-lg">
+              <Newspaper className="w-6 h-6 text-indigo-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Periódico</h2>
+          </div>
+          <div className="relative">
+            <select
+              value={selectedNewspaper}
+              onChange={(e) => setSelectedNewspaper(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer"
+              required
+            >
+              <option value="">Selecciona el periódico de origen</option>
+              {newspapers.map((newspaper) => (
+                <option key={newspaper.id} value={newspaper.id}>
+                  {newspaper.name} ({newspaper.code})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+          </div>
+          {selectedNewspaper && (
+            <p className="text-slate-400 text-sm mt-2">
+              {newspapers.find(n => n.id === selectedNewspaper)?.description}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* File Upload Zone */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
@@ -227,10 +260,18 @@ const IngestionView: React.FC = () => {
       <div className="flex justify-center pt-4">
         <button
           onClick={handleProcess}
-          disabled={!file || uploadStatus !== "success" || isProcessing}
+          disabled={
+            !file || 
+            uploadStatus !== "success" || 
+            isProcessing ||
+            (ingestionType === "extraction" && !selectedNewspaper)
+          }
           className={clsx(
             "flex items-center gap-3 px-10 py-4 rounded-xl font-bold text-lg transition-all shadow-lg",
-            !file || uploadStatus !== "success" || isProcessing
+            !file || 
+            uploadStatus !== "success" || 
+            isProcessing ||
+            (ingestionType === "extraction" && !selectedNewspaper)
               ? "bg-slate-800 text-slate-500 cursor-not-allowed"
               : "bg-blue-600 text-white hover:bg-blue-500 hover:shadow-blue-500/20 active:scale-95"
           )}

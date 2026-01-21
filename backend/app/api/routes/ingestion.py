@@ -19,14 +19,14 @@ router = APIRouter()
 # In-memory task storage (use Redis or database in production)
 ingestion_tasks = {}
 
-async def process_ingestion_task(task_id: str, file_path: str, ingestion_type: IngestionType):
+async def process_ingestion_task(task_id: str, file_path: str, ingestion_type: IngestionType, newspaper: Optional[str] = None):
     """Background task for processing ingestion"""
     try:
         ingestion_tasks[task_id]["status"] = "processing"
         ingestion_tasks[task_id]["progress"] = 10
         
         if ingestion_type == IngestionType.EXTRACTION:
-            result = await portada_service.ingest_extraction_data(file_path)
+            result = await portada_service.ingest_extraction_data(file_path, newspaper=newspaper)
         else:  # KNOWN_ENTITIES
             result = await portada_service.ingest_known_entities(file_path)
         
@@ -52,10 +52,16 @@ async def process_ingestion_task(task_id: str, file_path: str, ingestion_type: I
 async def upload_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    ingestion_type: IngestionType = Form(...)
+    ingestion_type: IngestionType = Form(...),
+    newspaper: Optional[str] = Form(None)
 ):
     """
     Upload and process a file for ingestion
+    
+    Args:
+        file: The file to upload (JSON/YAML)
+        ingestion_type: Type of ingestion (extraction or known_entities)
+        newspaper: Newspaper identifier (required for extraction type)
     """
     # Validate file type
     allowed_extensions = {".json", ".yml", ".yaml"}
@@ -65,6 +71,13 @@ async def upload_file(
         raise HTTPException(
             status_code=400,
             detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+    
+    # Validate newspaper parameter for extraction type
+    if ingestion_type == IngestionType.EXTRACTION and not newspaper:
+        raise HTTPException(
+            status_code=400,
+            detail="Newspaper parameter is required for extraction type ingestion"
         )
     
     # Create temporary file
@@ -92,7 +105,8 @@ async def upload_file(
             process_ingestion_task, 
             task_id, 
             temp_file_path, 
-            ingestion_type
+            ingestion_type,
+            newspaper
         )
         
         return IngestionResponse(

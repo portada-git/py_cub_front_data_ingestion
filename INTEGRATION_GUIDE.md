@@ -308,3 +308,76 @@ The implementation follows the exact specifications from your rectification docu
 - ✅ All PortAda integration points prepared
 
 Ready for your PortAda library integration! 🚀
+
+
+## 📰 Newspaper Selection Feature
+
+### Overview
+The ingestion view includes newspaper selection for extraction-type data ingestion. This allows organizing uploaded files by newspaper source in the data lake.
+
+### Frontend Implementation
+- **Location**: `frontend/src/views/IngestionView.tsx`
+- **Data Source**: `frontend/src/data/newspapers.json`
+- **Behavior**:
+  - Newspaper selector only appears for "extraction" type ingestion
+  - Hidden for "known_entities" type
+  - Required field validation before processing
+  - Displays newspaper name, code, and description
+
+### Available Newspapers
+1. **Diario de Barcelona (DB)** - Periódico histórico catalán
+2. **Diario de la Marina (DM)** - Periódico histórico cubano
+3. **Semanario de Málaga (SM)** - Publicación histórica andaluza
+4. **Gaceta de Madrid (GM)** - Boletín oficial histórico
+5. **El Liberal (EL)** - Periódico histórico español
+6. **El Imparcial (EI)** - Diario histórico madrileño
+
+### Backend Implementation
+- **Endpoint**: `POST /api/ingestion/upload`
+- **New Parameter**: `newspaper` (optional string, required for extraction type)
+- **Validation**: Backend validates that newspaper is provided for extraction type
+- **File Organization**: Files are organized as `{data_path}/{newspaper}/` in the data lake
+
+### API Changes
+```python
+# Backend endpoint signature
+async def upload_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    ingestion_type: IngestionType = Form(...),
+    newspaper: Optional[str] = Form(None)  # NEW PARAMETER
+)
+```
+
+### Data Flow
+1. User selects ingestion type ("extraction" or "known_entities")
+2. If "extraction", newspaper selector appears
+3. User selects newspaper from dropdown
+4. User uploads file
+5. Frontend validates newspaper selection before enabling "Procesar Datos" button
+6. On submit, newspaper ID is sent to backend
+7. Backend organizes file in data lake: `ship_entries/{newspaper}/`
+
+### Adding New Newspapers
+To add new newspapers, edit `frontend/src/data/newspapers.json`:
+```json
+{
+  "newspapers": [
+    {
+      "id": "unique_id",
+      "name": "Full Newspaper Name",
+      "code": "CODE",
+      "description": "Description of the newspaper"
+    }
+  ]
+}
+```
+
+### Example API Call
+```bash
+curl -X POST "http://localhost:8000/api/ingestion/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@extraction_data.json" \
+  -F "ingestion_type=extraction" \
+  -F "newspaper=dm"
+```

@@ -1,42 +1,40 @@
 """
-Authentication routes
+Authentication routes - Simplified username-only authentication
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 router = APIRouter()
 
 class LoginRequest(BaseModel):
     username: str
-    password: str
 
 class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str
+    success: bool
     user: dict
 
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
     """
-    Simple login endpoint for demo purposes
-    In production, implement proper authentication
+    Simple username-only authentication for activity tracking
+    No password required - for development/internal use
     """
-    # Mock authentication - replace with real implementation
-    if request.username == "admin" and request.password == "admin":
+    username = request.username.strip()
+    
+    if not username:
         return LoginResponse(
-            access_token="mock-jwt-token",
-            token_type="bearer",
-            user={
-                "name": "Administrador",
-                "email": "admin@portada.com",
-                "picture": None
-            }
+            success=False,
+            user={}
         )
     
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials"
+    return LoginResponse(
+        success=True,
+        user={
+            "name": username,
+            "email": f"{username}@portada.local",
+            "picture": None
+        }
     )
 
 @router.post("/logout")
