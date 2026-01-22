@@ -5,17 +5,15 @@
 
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Database, Eye, EyeOff, LogIn } from 'lucide-react';
-import { useAuthStore } from '../store/useStore';
+import { Database, LogIn } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const LoginView: React.FC = () => {
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
-    password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,8 +28,8 @@ const LoginView: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(formData.username, formData.password);
-      // Navigation will happen automatically due to auth state change
+      await login(formData.username);
+      // Navigation will happen automatically in the useAuth hook
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de autenticación');
     } finally {
@@ -64,7 +62,7 @@ const LoginView: React.FC = () => {
             Sistema de Ingestión y Análisis de Datos
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Inicia sesión para acceder al sistema
+            Ingresa tu usuario para acceder al sistema
           </p>
         </div>
 
@@ -82,7 +80,7 @@ const LoginView: React.FC = () => {
                   </div>
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800">
-                      Error de autenticación
+                      Usuario no encontrado
                     </h3>
                     <p className="mt-1 text-sm text-red-700">{error}</p>
                   </div>
@@ -108,43 +106,11 @@ const LoginView: React.FC = () => {
               />
             </div>
 
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="input pr-10"
-                  placeholder="Ingresa tu contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-500" />
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Submit Button */}
             <div>
               <button
                 type="submit"
-                disabled={isLoading || !formData.username || !formData.password}
+                disabled={isLoading || !formData.username}
                 className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? (

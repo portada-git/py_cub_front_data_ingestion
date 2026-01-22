@@ -5,17 +5,12 @@ Authentication service for the PortAda application
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import jwt
-from passlib.context import CryptContext
-from passlib.hash import bcrypt
 import logging
 
 from app.core.config import settings
 from app.core.exceptions import PortAdaAuthenticationError, PortAdaPermissionError
 
 logger = logging.getLogger(__name__)
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -26,68 +21,42 @@ class AuthService:
         self.algorithm = settings.ALGORITHM
         self.access_token_expire_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
         
-        # Mock user database - in production, use real database
+        # Mock user database - simplified for username-only authentication
         self.users_db = {
             "admin": {
                 "username": "admin",
-                "hashed_password": "admin_hash",  # Simplified for development
                 "role": "admin",
                 "permissions": ["read", "write", "admin"],
-                "full_name": "Administrator",
+                "full_name": "Administrador",
                 "email": "admin@portada.com",
                 "is_active": True
             },
             "analyst": {
                 "username": "analyst",
-                "hashed_password": "analyst_hash",  # Simplified for development
                 "role": "analyst",
                 "permissions": ["read", "write"],
-                "full_name": "Data Analyst",
+                "full_name": "Analista de Datos",
                 "email": "analyst@portada.com",
                 "is_active": True
             },
             "viewer": {
                 "username": "viewer",
-                "hashed_password": "viewer_hash",  # Simplified for development
                 "role": "viewer",
                 "permissions": ["read"],
-                "full_name": "Data Viewer",
+                "full_name": "Visualizador de Datos",
                 "email": "viewer@portada.com",
                 "is_active": True
             }
-        }
         
         # Active sessions storage - in production, use Redis
         self.active_sessions = {}
     
-    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify a password against its hash (simplified for development)"""
-        try:
-            # Simplified password verification for development
-            # In production, use proper bcrypt verification
-            password_map = {
-                "admin_hash": "admin",
-                "analyst_hash": "analyst123", 
-                "viewer_hash": "viewer123"
-            }
-            return password_map.get(hashed_password) == plain_password
-        except Exception as e:
-            logger.error(f"Error verifying password: {e}")
-            return False
-    
-    def get_password_hash(self, password: str) -> str:
-        """Hash a password (simplified for development)"""
-        # Simplified hashing for development
-        # In production, use proper bcrypt hashing
-        return f"{password}_hash"
-    
-    def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    def authenticate_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """
-        Authenticate a user with username and password
+        Authenticate a user by username only (no password required)
         
         Args:
             username: User's username
-            password: User's plain text password
             
         Returns:
             User information if authentication successful, None otherwise
@@ -100,10 +69,6 @@ class AuthService:
             
             if not user.get("is_active", False):
                 logger.warning(f"Authentication failed: user '{username}' is inactive")
-                return None
-            
-            if not self.verify_password(password, user["hashed_password"]):
-                logger.warning(f"Authentication failed: invalid password for user '{username}'")
                 return None
             
             logger.info(f"User '{username}' authenticated successfully")

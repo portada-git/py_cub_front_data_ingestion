@@ -34,6 +34,8 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-undef': 'off', // TypeScript handles this
     },
   },
 ]

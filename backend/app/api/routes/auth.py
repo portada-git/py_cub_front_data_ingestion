@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class LoginRequest(BaseModel):
     """Login request model"""
     username: str
-    password: str
 
 
 class LoginResponse(BaseModel):
@@ -49,18 +48,18 @@ class UserInfoResponse(BaseModel):
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
     """
-    Authenticate user and return access token
+    Authenticate user by username only (no password required)
     """
     try:
         logger.info(f"Login attempt for user: {request.username}")
         
-        # Authenticate user
-        user_data = auth_service.authenticate_user(request.username, request.password)
+        # Authenticate user by username only
+        user_data = auth_service.authenticate_user_by_username(request.username)
         if not user_data:
             logger.warning(f"Failed login attempt for user: {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password",
+                detail="Usuario no encontrado o inactivo",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         

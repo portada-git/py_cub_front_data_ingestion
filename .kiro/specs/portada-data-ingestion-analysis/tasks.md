@@ -258,17 +258,15 @@ This implementation plan breaks down the PortAda Data Ingestion and Analysis Sys
     - Test process metadata with default filtering
     - _Requirements: 12.1-12.7, 13.1-13.4, 14.1-14.5_
 
-- [ ] 13. Checkpoint - Backend API Complete
-  - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Frontend Core Setup
-  - [ ] 14.1 Initialize React application with TypeScript
+- [-] 14. Frontend Core Setup
+  - [x] 14.1 Initialize React application with TypeScript
     - Set up React project with Create React App or Vite
     - Configure TypeScript and ESLint
     - Set up routing with React Router
     - _Requirements: 15.1, 15.2_
 
-  - [ ] 14.2 Create authentication components
+  - [-] 14.2 Create authentication components
     - Implement login form component
     - Create authentication context and hooks
     - Add session management and token handling

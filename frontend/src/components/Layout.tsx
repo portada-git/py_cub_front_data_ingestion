@@ -14,7 +14,8 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { useAuthStore, useUIStore } from '../store/useStore';
+import { useAuth } from '../hooks/useAuth';
+import { useUIStore } from '../store/useStore';
 import clsx from 'clsx';
 
 interface LayoutProps {
@@ -22,7 +23,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
   const location = useLocation();
 
@@ -54,11 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await logout();
   };
 
   return (

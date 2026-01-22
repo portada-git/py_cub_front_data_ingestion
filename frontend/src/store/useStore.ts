@@ -11,7 +11,7 @@ import { apiService } from '../services/api';
 interface AuthState {
   user: UserSession | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: UserSession) => void;
 }
@@ -52,9 +52,9 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       
-      login: async (username: string, password: string) => {
+      login: async (username: string) => {
         try {
-          const response = await apiService.login({ username, password });
+          const response = await apiService.login({ username });
           const user: UserSession = {
             ...response.user_info,
             isAuthenticated: true,

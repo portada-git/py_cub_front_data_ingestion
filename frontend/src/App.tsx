@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useStore';
+import { useSession } from './hooks/useSession';
 import Layout from './components/Layout';
 import LoginView from './views/LoginView';
 import DashboardView from './views/DashboardView';
@@ -75,6 +76,13 @@ class ErrorBoundary extends React.Component<
 
 const App: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
+  
+  // Initialize session management for authenticated users
+  useSession({
+    refreshThreshold: 5, // Refresh 5 minutes before expiry
+    warningThreshold: 2, // Show warning 2 minutes before expiry
+    checkInterval: 1, // Check every minute
+  });
 
   // Initialize authentication state from localStorage
   useEffect(() => {
