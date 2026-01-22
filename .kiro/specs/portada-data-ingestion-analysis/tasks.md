@@ -284,8 +284,8 @@ This implementation plan breaks down the PortAda Data Ingestion and Analysis Sys
     - Test route protection
     - _Requirements: 1.1, 1.2, 1.4_
 
-- [ ] 15. Frontend File Upload Components
-  - [ ] 15.1 Create file upload component
+- [-] 15. Frontend File Upload Components
+  - [-] 15.1 Create file upload component
     - Implement drag-and-drop file upload
     - Add file format validation (client-side)
     - Create upload progress indication
