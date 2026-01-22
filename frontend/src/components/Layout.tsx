@@ -9,11 +9,7 @@ import {
   Home, 
   Upload, 
   BarChart3, 
-  FileText, 
-  Calendar, 
-  Copy, 
   Database, 
-  Settings, 
   LogOut,
   Menu,
   X

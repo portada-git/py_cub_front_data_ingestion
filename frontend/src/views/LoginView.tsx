@@ -3,7 +3,7 @@
  * Modern authentication interface with proper error handling
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Database, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/useStore';

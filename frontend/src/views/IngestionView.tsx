@@ -114,7 +114,7 @@ const IngestionView: React.FC = () => {
 
       // Simulate upload progress
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90));
+        setUploadProgress((prev: number) => Math.min(prev + 10, 90));
       }, 200);
 
       const result = await apiService.uploadFile(

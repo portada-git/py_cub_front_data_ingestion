@@ -22,7 +22,7 @@ interface IngestionState {
   uploadProgress: number;
   setCurrentTask: (task: IngestionResponse | null) => void;
   setUploading: (uploading: boolean) => void;
-  setUploadProgress: (progress: number) => void;
+  setUploadProgress: (progress: number | ((prev: number) => number)) => void;
 }
 
 interface UIState {
@@ -48,7 +48,7 @@ interface NotificationState {
 // Auth store with persistence
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAuthenticated: false,
       
@@ -120,7 +120,9 @@ export const useIngestionStore = create<IngestionState>((set) => ({
   
   setCurrentTask: (task) => set({ currentTask: task }),
   setUploading: (uploading) => set({ isUploading: uploading }),
-  setUploadProgress: (progress) => set({ uploadProgress: progress }),
+  setUploadProgress: (progress) => set((state) => ({ 
+    uploadProgress: typeof progress === 'function' ? progress(state.uploadProgress) : progress 
+  })),
 }));
 
 // UI store

@@ -12,7 +12,6 @@ import DashboardView from './views/DashboardView';
 import IngestionView from './views/IngestionView';
 import AnalysisView from './views/AnalysisView';
 import NotificationContainer from './components/NotificationContainer';
-import LoadingSpinner from './components/LoadingSpinner';
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -75,7 +74,7 @@ class ErrorBoundary extends React.Component<
 }
 
 const App: React.FC = () => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   // Initialize authentication state from localStorage
   useEffect(() => {
