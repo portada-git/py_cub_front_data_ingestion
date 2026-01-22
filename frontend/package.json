@@ -10,15 +10,17 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/react-window": "^1.8.8",
+    "axios": "^1.6.2",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
-    "lucide-react": "^0.294.0",
-    "zustand": "^4.4.7",
-    "axios": "^1.6.2",
     "react-dropzone": "^14.2.3",
-    "date-fns": "^2.30.0",
-    "clsx": "^2.0.0"
+    "react-router-dom": "^6.20.1",
+    "react-window": "^2.2.5",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",

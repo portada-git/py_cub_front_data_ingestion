@@ -199,6 +199,30 @@ class ApiService {
     });
   }
 
+  async analyzeMissingDatesFile(file: File): Promise<MissingDatesResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.request<MissingDatesResponse>('/analysis/missing-dates', {
+      method: 'POST',
+      headers: {
+        'Authorization': this.token ? `Bearer ${this.token}` : '',
+      },
+      body: formData,
+    });
+  }
+
+  async analyzeMissingDatesRange(request: {
+    start_date: string;
+    end_date: string;
+    publication?: string;
+  }): Promise<MissingDatesResponse> {
+    return this.request<MissingDatesResponse>('/analysis/missing-dates', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
   async uploadDatesFile(file: File, publicationName: string) {
     const formData = new FormData();
     formData.append('file', file);
@@ -216,6 +240,18 @@ class ApiService {
   // Analysis - Duplicates
   async getDuplicates(request: DuplicatesRequest): Promise<DuplicatesResponse> {
     return this.request<DuplicatesResponse>('/analysis/duplicates', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getDuplicatesMetadata(request: {
+    user?: string;
+    publication?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    return this.request('/analysis/duplicates', {
       method: 'POST',
       body: JSON.stringify(request),
     });
