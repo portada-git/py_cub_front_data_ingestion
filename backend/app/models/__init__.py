@@ -1,1 +1,3 @@
-# Pydantic models for request/response
+"""
+Data models for the PortAda application
+"""

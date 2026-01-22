@@ -2,122 +2,43 @@
  * API service for PortAda backend integration
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+import { 
+  LoginRequest, 
+  LoginResponse, 
+  IngestionResponse, 
+  IngestionStatusResponse,
+  MissingDatesRequest,
+  MissingDatesResponse,
+  DuplicatesRequest,
+  DuplicatesResponse,
+  PendingFilesResponse,
+  KnownEntitiesResponse,
+  DailyEntriesRequest,
+  DailyEntriesResponse
+} from '../types';
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
-
-export interface IngestionResponse {
-  success: boolean;
-  message: string;
-  task_id?: string;
-  records_processed?: number;
-}
-
-export interface IngestionStatus {
-  task_id: string;
-  status: string;
-  progress?: number;
-  message?: string;
-  records_processed?: number;
-  error_details?: string;
-}
-
-export interface MissingDatesRequest {
-  publication_name: string;
-  query_mode: string;
-  start_date?: string;
-  end_date?: string;
-  date_and_edition_list?: string;
-}
-
-export interface MissingDateEntry {
-  date: string;
-  edition: string;
-  gap_duration?: string;
-}
-
-export interface MissingDatesResponse {
-  success: boolean;
-  publication_name: string;
-  missing_dates: MissingDateEntry[];
-  total_missing: number;
-}
-
-export interface DuplicatesRequest {
-  user_responsible?: string;
-  publication?: string;
-  start_date?: string;
-  end_date?: string;
-}
-
-export interface DuplicateRecord {
-  log_id: string;
-  date: string;
-  edition: string;
-  publication: string;
-  uploaded_by: string;
-  duplicate_count: number;
-  duplicates_filter: string;
-  duplicate_ids: string[];
-}
-
-export interface DuplicatesResponse {
-  success: boolean;
-  duplicates_metadata: DuplicateRecord[];
-  total_records: number;
-}
-
-export interface StorageMetadataRequest {
-  table_name?: string;
-  process?: string;
-}
-
-export interface StorageRecord {
-  log_id: string;
-  table_name: string;
-  process: string;
-  timestamp: string;
-  record_count: number;
-  stage: number;
-}
-
-export interface StorageMetadataResponse {
-  success: boolean;
-  storage_records: StorageRecord[];
-  total_records: number;
-}
-
-export interface ProcessMetadataRequest {
-  process_name?: string;
-}
-
-export interface ProcessRecord {
-  log_id: string;
-  process: string;
-  timestamp: string;
-  duration?: number;
-  status: string;
-  records_processed: number;
-  stage: number;
-  error_message?: string;
-}
-
-export interface ProcessMetadataResponse {
-  success: boolean;
-  process_records: ProcessRecord[];
-  total_records: number;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
 
 class ApiService {
   private baseUrl: string;
+  private token: string | null = null;
 
   constructor() {
     this.baseUrl = API_BASE_URL;
+    // Load token from localStorage on initialization
+    this.token = localStorage.getItem('access_token');
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    
+    return headers;
   }
 
   private async request<T>(
@@ -126,14 +47,10 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
-    };
-
     const config: RequestInit = {
       ...options,
       headers: {
-        ...defaultHeaders,
+        ...this.getAuthHeaders(),
         ...options.headers,
       },
     };
@@ -142,8 +59,14 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid, clear it
+          this.clearToken();
+          throw new Error('Authentication required');
+        }
+        
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
@@ -153,35 +76,118 @@ class ApiService {
     }
   }
 
-  // Authentication
-  async login(username: string) {
-    return this.request<{success: boolean; user: any}>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username }),
-    });
+  setToken(token: string) {
+    this.token = token;
+    localStorage.setItem('access_token', token);
   }
 
-  async logout() {
-    return this.request<{message: string}>('/auth/logout', {
+  clearToken() {
+    this.token = null;
+    localStorage.removeItem('access_token');
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  // Authentication
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    const response = await this.request<LoginResponse>('/auth/login', {
       method: 'POST',
+      body: JSON.stringify(credentials),
     });
+    
+    // Store the token
+    this.setToken(response.access_token);
+    
+    return response;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.request('/auth/logout', {
+        method: 'POST',
+      });
+    } finally {
+      // Always clear token, even if logout request fails
+      this.clearToken();
+    }
+  }
+
+  async getCurrentUser() {
+    return this.request('/auth/me');
   }
 
   // Ingestion
-  async uploadFile(file: File, ingestionType: string): Promise<IngestionResponse> {
+  async uploadFile(
+    file: File, 
+    ingestionType: 'extraction_data' | 'known_entities',
+    publication?: string,
+    entityName?: string,
+    dataPathDeltaLake?: string
+  ): Promise<IngestionResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('ingestion_type', ingestionType);
+    
+    if (publication) {
+      formData.append('publication', publication);
+    }
+    if (entityName) {
+      formData.append('entity_name', entityName);
+    }
+    if (dataPathDeltaLake) {
+      formData.append('data_path_delta_lake', dataPathDeltaLake);
+    }
 
     return this.request<IngestionResponse>('/ingestion/upload', {
       method: 'POST',
-      headers: {}, // Let browser set Content-Type for FormData
+      headers: {
+        // Don't set Content-Type for FormData, let browser set it
+        'Authorization': this.token ? `Bearer ${this.token}` : '',
+      },
       body: formData,
     });
   }
 
-  async getIngestionStatus(taskId: string): Promise<IngestionStatus> {
-    return this.request<IngestionStatus>(`/ingestion/status/${taskId}`);
+  async getIngestionStatus(taskId: string): Promise<IngestionStatusResponse> {
+    return this.request<IngestionStatusResponse>(`/ingestion/status/${taskId}`);
+  }
+
+  async getIngestionTasks(status?: string) {
+    const params = status ? `?status=${status}` : '';
+    return this.request(`/ingestion/tasks${params}`);
+  }
+
+  async cancelTask(taskId: string) {
+    return this.request(`/ingestion/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getProcessStatus() {
+    return this.request('/ingestion/process-status');
+  }
+
+  // Analysis - Basic Queries
+  async getPendingFiles(publication?: string, username?: string): Promise<PendingFilesResponse> {
+    const params = new URLSearchParams();
+    if (publication) params.append('publication', publication);
+    if (username) params.append('username', username);
+    
+    const queryString = params.toString();
+    return this.request<PendingFilesResponse>(`/analysis/pending-files${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getKnownEntities(): Promise<KnownEntitiesResponse> {
+    return this.request<KnownEntitiesResponse>('/analysis/known-entities');
+  }
+
+  async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {
+    return this.request<DailyEntriesResponse>('/analysis/daily-entries', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
   }
 
   // Analysis - Missing Dates
@@ -189,6 +195,20 @@ class ApiService {
     return this.request<MissingDatesResponse>('/analysis/missing-dates', {
       method: 'POST',
       body: JSON.stringify(request),
+    });
+  }
+
+  async uploadDatesFile(file: File, publicationName: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('publication_name', publicationName);
+
+    return this.request('/analysis/missing-dates/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': this.token ? `Bearer ${this.token}` : '',
+      },
+      body: formData,
     });
   }
 
@@ -200,18 +220,13 @@ class ApiService {
     });
   }
 
-  async getDuplicateDetails(logId: string, duplicatesFilter: string, duplicateIds: string[]) {
-    const params = new URLSearchParams({
-      duplicates_filter: duplicatesFilter,
-      duplicate_ids: duplicateIds.join(','),
-    });
-    
-    return this.request(`/analysis/duplicates/${logId}/details?${params}`);
+  async getDuplicateDetails(logId: string) {
+    return this.request(`/analysis/duplicates/${logId}/details`);
   }
 
-  // Analysis - Storage Metadata
-  async getStorageMetadata(request: StorageMetadataRequest): Promise<StorageMetadataResponse> {
-    return this.request<StorageMetadataResponse>('/analysis/storage-metadata', {
+  // Analysis - Storage and Process Metadata
+  async getStorageMetadata(request: any) {
+    return this.request('/analysis/storage-metadata', {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -221,17 +236,39 @@ class ApiService {
     return this.request(`/analysis/storage-metadata/${logId}/lineage`);
   }
 
-  // Analysis - Process Metadata
-  async getProcessMetadata(request: ProcessMetadataRequest): Promise<ProcessMetadataResponse> {
-    return this.request<ProcessMetadataResponse>('/analysis/process-metadata', {
+  async getProcessMetadata(request: any) {
+    return this.request('/analysis/process-metadata', {
       method: 'POST',
       body: JSON.stringify(request),
     });
   }
 
+  // Admin endpoints
+  async cleanupFiles(maxAgeHours?: number) {
+    const params = maxAgeHours ? `?max_age_hours=${maxAgeHours}` : '';
+    return this.request(`/ingestion/cleanup${params}`, {
+      method: 'POST',
+    });
+  }
+
+  async listUploadFiles() {
+    return this.request('/ingestion/files');
+  }
+
+  async cleanupTasks(maxAgeHours?: number) {
+    const params = maxAgeHours ? `?max_age_hours=${maxAgeHours}` : '';
+    return this.request(`/ingestion/tasks/cleanup${params}`, {
+      method: 'POST',
+    });
+  }
+
+  async getQueueStatus() {
+    return this.request('/ingestion/queue-status');
+  }
+
   // Health check
   async healthCheck() {
-    return this.request<{status: string; message: string}>('/health');
+    return this.request<{status: string; service: string}>('/health');
   }
 }
 

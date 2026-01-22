@@ -1,5 +1,6 @@
 """
 Service layer for PortAda library integration
+Enhanced version with improved error handling and logging
 """
 
 import os
@@ -9,11 +10,50 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 import asyncio
 import aiofiles
+import logging
 
 # PortAda library imports
-from portada_data_layer import PortadaBuilder, DataLakeMetadataManager
+try:
+    from portada_data_layer import PortadaBuilder, DataLakeMetadataManager
+except ImportError as e:
+    logging.warning(f"PortAda library not available: {e}")
+    # Mock classes for development
+    class PortadaBuilder:
+        NEWS_TYPE = "news"
+        KNOWN_ENTITIES_TYPE = "known_entities"
+        
+        def protocol(self, protocol: str): return self
+        def base_path(self, path: str): return self
+        def app_name(self, name: str): return self
+        def project_name(self, name: str): return self
+        def build(self, layer_type: str): return MockLayer()
+    
+    class DataLakeMetadataManager:
+        def __init__(self, config): pass
+        def read_log(self, log_type: str): return MockDataFrame()
+    
+    class MockLayer:
+        def start_session(self): pass
+        def get_configuration(self): return {}
+        def ingest(self, dest_path: str, local_path: str): pass
+        def copy_ingested_entities(self, entity: str, local_path: str): return {}, ""
+        def save_raw_entities(self, entity: str, data: dict): pass
+        def get_missing_dates_from_a_newspaper(self, data_path: str, publication_name: str): return []
+        def read_raw_data(self, newspaper: str): return MockDataFrame()
+    
+    class MockDataFrame:
+        def filter(self, condition): return self
+        def collect(self): return []
+        def groupBy(self, *cols): return self
+        def agg(self, *funcs): return self
+        def select(self, *cols): return self
 
 from app.core.config import settings
+from app.core.exceptions import (
+    PortAdaBaseException, PortAdaConnectionError, PortAdaConfigurationError,
+    PortAdaIngestionError, PortAdaQueryError, PortAdaValidationError,
+    PortAdaFileError, wrap_portada_error
+)
 from app.models.ingestion import IngestionType
 from app.models.analysis import (
     MissingDateEntry, DuplicateRecord, DuplicateDetail,
@@ -21,8 +61,14 @@ from app.models.analysis import (
 )
 
 
+# Keep backward compatibility
+class PortAdaServiceError(PortAdaBaseException):
+    """Legacy exception for backward compatibility"""
+    pass
+
+
 class PortAdaService:
-    """Service for interacting with PortAda library"""
+    """Enhanced service for interacting with PortAda library"""
     
     # Layer type constants from PortadaBuilder
     NEWS_TYPE = "news"
@@ -36,41 +82,85 @@ class PortAdaService:
         self._layer_news = None
         self._layer_entities = None
         self._metadata_manager = None
+        self.logger = logging.getLogger(__name__)
     
     def _get_builder(self) -> PortadaBuilder:
         """Get or create PortAda builder instance"""
         if self._builder is None:
-            self._builder = (
-                PortadaBuilder()
-                .protocol("file://")
-                .base_path(self.base_path)
-                .app_name(self.app_name)
-                .project_name(self.project_name)
-            )
+            try:
+                self._builder = (
+                    PortadaBuilder()
+                    .protocol("file://")
+                    .base_path(self.base_path)
+                    .app_name(self.app_name)
+                    .project_name(self.project_name)
+                )
+                self.logger.info("PortAda builder initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize PortAda builder: {e}")
+                raise wrap_portada_error(e, "builder initialization")
         return self._builder
     
     def _get_news_layer(self):
         """Get or create news layer instance"""
         if self._layer_news is None:
-            builder = self._get_builder()
-            self._layer_news = builder.build(builder.NEWS_TYPE)
-            self._layer_news.start_session()
+            try:
+                builder = self._get_builder()
+                self._layer_news = builder.build(builder.NEWS_TYPE)
+                self._layer_news.start_session()
+                self.logger.info("News layer initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize news layer: {e}")
+                raise wrap_portada_error(e, "news layer initialization")
         return self._layer_news
     
     def _get_entities_layer(self):
         """Get or create entities layer instance"""
         if self._layer_entities is None:
-            builder = self._get_builder()
-            self._layer_entities = builder.build(builder.KNOWN_ENTITIES_TYPE)
-            self._layer_entities.start_session()
+            try:
+                builder = self._get_builder()
+                self._layer_entities = builder.build(builder.KNOWN_ENTITIES_TYPE)
+                self._layer_entities.start_session()
+                self.logger.info("Entities layer initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize entities layer: {e}")
+                raise wrap_portada_error(e, "entities layer initialization")
         return self._layer_entities
     
     def _get_metadata_manager(self) -> DataLakeMetadataManager:
         """Get or create metadata manager instance"""
         if self._metadata_manager is None:
-            layer_news = self._get_news_layer()
-            self._metadata_manager = DataLakeMetadataManager(layer_news.get_configuration())
+            try:
+                layer_news = self._get_news_layer()
+                self._metadata_manager = DataLakeMetadataManager(layer_news.get_configuration())
+                self.logger.info("Metadata manager initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize metadata manager: {e}")
+                raise wrap_portada_error(e, "metadata manager initialization")
         return self._metadata_manager
+
+    def _handle_ingestion_error(self, e: Exception, operation: str) -> Dict[str, Any]:
+        """
+        Handle ingestion errors and return standardized error response
+        
+        Args:
+            e: The exception that occurred
+            operation: Description of the operation that failed
+            
+        Returns:
+            Standardized error response dictionary
+        """
+        if isinstance(e, PortAdaBaseException):
+            error_msg = e.message
+        else:
+            wrapped_error = wrap_portada_error(e, operation)
+            error_msg = wrapped_error.message
+        
+        return {
+            "success": False,
+            "records_processed": 0,
+            "message": error_msg
+        }
 
     async def ingest_extraction_data(self, file_path: str, newspaper: Optional[str] = None, data_path_delta_lake: str = "ship_entries") -> Dict[str, Any]:
         """
@@ -85,6 +175,7 @@ class PortAdaService:
             Dictionary with ingestion results
         """
         try:
+            self.logger.info(f"Starting extraction data ingestion: {file_path}")
             layer_news = self._get_news_layer()
             
             # Count records before ingestion
@@ -100,21 +191,21 @@ class PortAdaService:
                 destination_path = data_path_delta_lake
             
             # Perform ingestion using PortAda library
-            # Note: This operation may delete the source file
             layer_news.ingest(destination_path, local_path=file_path)
             
+            self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
             return {
                 "success": True,
                 "records_processed": record_count,
                 "message": f"Successfully ingested {record_count} records to {destination_path}"
             }
             
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON format in file {file_path}: {e}")
+            return self._handle_ingestion_error(e, "JSON validation")
         except Exception as e:
-            return {
-                "success": False,
-                "records_processed": 0,
-                "message": f"Error during ingestion: {str(e)}"
-            }
+            self.logger.error(f"Error during extraction data ingestion: {e}")
+            return self._handle_ingestion_error(e, "extraction data ingestion")
     
     async def ingest_known_entities(self, file_path: str, entity_name: str = "known_entities") -> Dict[str, Any]:
         """
@@ -128,6 +219,7 @@ class PortAdaService:
             Dictionary with ingestion results
         """
         try:
+            self.logger.info(f"Starting known entities ingestion: {file_path}")
             layer_entities = self._get_entities_layer()
             
             # Count entities before ingestion
@@ -141,18 +233,19 @@ class PortAdaService:
             odata = {"source_path": dest, "data": data}
             layer_entities.save_raw_entities(entity=entity_name, data=odata)
             
+            self.logger.info(f"Successfully ingested {entity_count} entities as {entity_name}")
             return {
                 "success": True,
                 "records_processed": entity_count,
                 "message": f"Successfully ingested {entity_count} entities as {entity_name}"
             }
             
+        except yaml.YAMLError as e:
+            self.logger.error(f"Invalid YAML format in file {file_path}: {e}")
+            return self._handle_ingestion_error(e, "YAML validation")
         except Exception as e:
-            return {
-                "success": False,
-                "records_processed": 0,
-                "message": f"Error during entity ingestion: {str(e)}"
-            }
+            self.logger.error(f"Error during known entities ingestion: {e}")
+            return self._handle_ingestion_error(e, "known entities ingestion")
     
     async def get_missing_dates(
         self, 
@@ -176,6 +269,7 @@ class PortAdaService:
             List of missing date entries
         """
         try:
+            self.logger.info(f"Getting missing dates for publication: {publication_name}")
             layer_news = self._get_news_layer()
             
             # Get missing dates using PortAda library
@@ -194,10 +288,13 @@ class PortAdaService:
                         gap_duration=str(item.get('gap_duration', ''))
                     ))
             
+            self.logger.info(f"Found {len(missing_dates)} missing dates for {publication_name}")
             return missing_dates
             
         except Exception as e:
-            raise Exception(f"Error getting missing dates: {str(e)}")
+            error_msg = f"Error getting missing dates for {publication_name}: {str(e)}"
+            self.logger.error(error_msg)
+            raise wrap_portada_error(e, f"missing dates query for {publication_name}")
 
     async def get_duplicates_metadata(
         self,
@@ -213,6 +310,7 @@ class PortAdaService:
             List of duplicate records with metadata
         """
         try:
+            self.logger.info("Getting duplicates metadata")
             metadata = self._get_metadata_manager()
             
             # Read duplicates log from PortAda
@@ -243,175 +341,13 @@ class PortAdaService:
                     duplicate_ids=row.get('duplicate_ids', [])
                 ))
             
+            self.logger.info(f"Found {len(duplicates)} duplicate records")
             return duplicates
             
         except Exception as e:
-            raise Exception(f"Error getting duplicates metadata: {str(e)}")
-    
-    async def get_duplicate_details(self, duplicates_filter: str, duplicate_ids: List[str]) -> List[DuplicateDetail]:
-        """
-        Get detailed duplicate records
-        
-        Args:
-            duplicates_filter: Filter string for duplicates
-            duplicate_ids: List of duplicate entry IDs
-            
-        Returns:
-            List of detailed duplicate records
-        """
-        try:
-            metadata = self._get_metadata_manager()
-            
-            # Read duplicate records from PortAda
-            df_duplicates = metadata.read_log("duplicates_records")
-            
-            # Apply filters
-            filtered_df = df_duplicates.filter(duplicates_filter)
-            if duplicate_ids:
-                filtered_df = filtered_df.filter(filtered_df.entry_id.isin(duplicate_ids))
-            
-            # Collect results
-            results = filtered_df.collect()
-            
-            # Convert to our model format
-            details = []
-            for row in results:
-                details.append(DuplicateDetail(
-                    entry_id=str(row.get('entry_id', '')),
-                    content=str(row.get('content', '')),
-                    similarity_score=float(row.get('similarity_score', 0.0))
-                ))
-            
-            return details
-            
-        except Exception as e:
-            raise Exception(f"Error getting duplicate details: {str(e)}")
-    
-    async def get_storage_metadata(
-        self,
-        table_name: Optional[str] = None,
-        process: Optional[str] = None
-    ) -> List[StorageRecord]:
-        """
-        Get storage metadata (always filtered by stage = 0)
-        
-        Returns:
-            List of storage records
-        """
-        try:
-            metadata = self._get_metadata_manager()
-            
-            # Read storage log from PortAda
-            df_storage = metadata.read_log("storage_log")
-            
-            # Always filter by stage = 0
-            df_storage = df_storage.filter("stage == 0")
-            
-            # Apply additional filters
-            if table_name:
-                df_storage = df_storage.filter(f"table_name = '{table_name}'")
-            if process:
-                df_storage = df_storage.filter(f"process = '{process}'")
-            
-            # Collect results
-            results = df_storage.collect()
-            
-            # Convert to our model format
-            storage_records = []
-            for row in results:
-                storage_records.append(StorageRecord(
-                    log_id=str(row.get('log_id', '')),
-                    table_name=str(row.get('table_name', '')),
-                    process=str(row.get('process', '')),
-                    timestamp=row.get('timestamp', datetime.now()),
-                    record_count=int(row.get('record_count', 0)),
-                    stage=int(row.get('stage', 0))
-                ))
-            
-            return storage_records
-            
-        except Exception as e:
-            raise Exception(f"Error getting storage metadata: {str(e)}")
-
-    async def get_field_lineage(self, stored_log_id: str) -> List[FieldLineage]:
-        """
-        Get field lineage for a specific storage log
-        
-        Args:
-            stored_log_id: The log ID from storage metadata
-            
-        Returns:
-            List of field lineage records
-        """
-        try:
-            metadata = self._get_metadata_manager()
-            
-            # Read field lineage log from PortAda
-            df_lineage = metadata.read_log("field_lineage_log")
-            
-            # Filter by stored_log_id
-            df_lineage = df_lineage.filter(df_lineage.stored_log_id == stored_log_id)
-            
-            # Collect results
-            results = df_lineage.collect()
-            
-            # Convert to our model format
-            lineage_records = []
-            for row in results:
-                lineage_records.append(FieldLineage(
-                    field_name=str(row.get('field_name', '')),
-                    operation=str(row.get('operation', '')),
-                    old_value=str(row.get('old_value', '')),
-                    new_value=str(row.get('new_value', '')),
-                    timestamp=row.get('timestamp', datetime.now())
-                ))
-            
-            return lineage_records
-            
-        except Exception as e:
-            raise Exception(f"Error getting field lineage: {str(e)}")
-    
-    async def get_process_metadata(self, process_name: Optional[str] = None) -> List[ProcessRecord]:
-        """
-        Get process metadata (filtered by process = 'ingest.save_raw_data' by default)
-        
-        Returns:
-            List of process records
-        """
-        try:
-            metadata = self._get_metadata_manager()
-            
-            # Read process log from PortAda
-            df_process = metadata.read_log("process_log")
-            
-            # Apply process filter
-            if process_name:
-                df_process = df_process.filter(f"process = '{process_name}'")
-            else:
-                # Default filter as per documentation
-                df_process = df_process.filter("process = 'ingest.save_raw_data'")
-            
-            # Collect results
-            results = df_process.collect()
-            
-            # Convert to our model format
-            process_records = []
-            for row in results:
-                process_records.append(ProcessRecord(
-                    log_id=str(row.get('log_id', '')),
-                    process=str(row.get('process', '')),
-                    timestamp=row.get('timestamp', datetime.now()),
-                    duration=float(row.get('duration', 0.0)),
-                    status=str(row.get('status', '')),
-                    records_processed=int(row.get('records_processed', 0)),
-                    stage=int(row.get('stage', 0)),
-                    error_message=row.get('error_message')
-                ))
-            
-            return process_records
-            
-        except Exception as e:
-            raise Exception(f"Error getting process metadata: {str(e)}")
+            error_msg = f"Error getting duplicates metadata: {str(e)}"
+            self.logger.error(error_msg)
+            raise wrap_portada_error(e, "duplicates metadata query")
 
 
 # Global service instance

@@ -1,27 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Database, ShieldCheck, Zap, BarChart3, User, LogIn } from "lucide-react";
+import { Database, ShieldCheck, Zap, BarChart3, User, LogIn, AlertCircle } from "lucide-react";
 import { useStore } from "../store/useStore";
 
 const WelcomeView: React.FC = () => {
   const navigate = useNavigate();
-  const { setAuthStatus, setUser } = useStore();
+  const { login, authStatus } = useStore();
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
-    if (username.trim()) {
-      setUser({
-        name: username.trim(),
-        email: `${username.trim()}@portada.local`,
-        picture: null,
-      });
-
-      setAuthStatus("authenticated");
-      navigate("/ingestion");
+    if (username.trim() && password.trim()) {
+      try {
+        await login(username.trim(), password.trim());
+        navigate("/ingestion");
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Error de autenticación");
+      }
     }
   };
+
+  const isLoading = authStatus === 'loading';
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -49,7 +52,7 @@ const WelcomeView: React.FC = () => {
           </p>
         </div>
 
-        {/* Simple Username Login */}
+        {/* Login Form */}
         <div className="pt-8 flex flex-col items-center justify-center">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-md">
             <div className="flex items-center justify-center mb-6">
@@ -58,10 +61,17 @@ const WelcomeView: React.FC = () => {
               </div>
             </div>
             
-            <h2 className="text-2xl font-bold text-white mb-2">Identificación</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Iniciar Sesión</h2>
             <p className="text-slate-400 text-sm mb-6">
-              Ingresa tu nombre de usuario para continuar
+              Ingresa tus credenciales para continuar
             </p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
@@ -73,27 +83,67 @@ const WelcomeView: React.FC = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ej: juan.perez"
+                  placeholder="admin, analyst, o viewer"
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   required
                   autoFocus
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                  Contraseña
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Contraseña"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  required
+                  disabled={isLoading}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={!username.trim()}
+                disabled={!username.trim() || !password.trim() || isLoading}
                 className="w-full flex items-center justify-center gap-3 px-6 py-3 rounded-lg font-medium transition-all bg-blue-600 text-white hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed"
               >
-                <LogIn className="w-5 h-5" />
-                Ingresar
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                    Iniciando sesión...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    Ingresar
+                  </>
+                )}
               </button>
             </form>
-          </div>
 
-          <p className="mt-8 text-slate-500 text-sm">
-            Sistema de identificación simple para registro de actividades
-          </p>
+            <div className="mt-6 p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-slate-400 text-xs mb-2">Usuarios de prueba:</p>
+              <div className="space-y-1 text-xs">
+                <div className="text-slate-300">
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded">admin</span> / 
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded ml-1">admin</span>
+                </div>
+                <div className="text-slate-300">
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded">analyst</span> / 
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded ml-1">analyst123</span>
+                </div>
+                <div className="text-slate-300">
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded">viewer</span> / 
+                  <span className="font-mono bg-slate-700 px-2 py-1 rounded ml-1">viewer123</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Features Grid */}

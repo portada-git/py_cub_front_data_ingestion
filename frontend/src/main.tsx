@@ -1,16 +1,22 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-// import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.css";
 import App from "./App.tsx";
+import { useStore } from "./store/useStore";
 
-// const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+// Component to initialize auth check
+function AppWithAuthCheck() {
+  const { checkAuth } = useStore();
+  
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+  
+  return <App />;
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {/* Google OAuth deshabilitado temporalmente para desarrollo */}
-    {/* <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> */}
-      <App />
-    {/* </GoogleOAuthProvider> */}
+    <AppWithAuthCheck />
   </StrictMode>
 );
