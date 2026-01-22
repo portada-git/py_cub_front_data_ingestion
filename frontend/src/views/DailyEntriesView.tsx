@@ -60,7 +60,7 @@ const DailyEntriesView: React.FC = () => {
 
     if (result) {
       // Transform the API response to match our interface
-      const transformedResults: DailyEntry[] = result.daily_entries?.map((entry: any) => ({
+      const transformedResults: DailyEntry[] = result.daily_counts?.map((entry: any) => ({
         date: entry.publication_date || entry.date,
         edition: entry.publication_edition || entry.edition,
         entryCount: entry.entry_count || entry.count,

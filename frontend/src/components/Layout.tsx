@@ -93,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div 
-                  className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"
+                  className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
                   role="img"
                   aria-label="Logo de PortAda"
                 >
@@ -169,8 +169,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             key={child.name}
                             to={child.href}
                             className={clsx(
-                              'block px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-                              childIsActive && 'text-primary-700 bg-primary-50'
+                              'block px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                              childIsActive && 'text-blue-700 bg-blue-50'
                             )}
                             role="menuitem"
                             aria-current={childIsActive ? 'page' : undefined}
@@ -211,7 +211,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label="Cerrar sesión"
             >
               <LogOut className="w-4 h-4 mr-3" aria-hidden="true" />
@@ -228,14 +228,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-16 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label="Abrir menú de navegación"
             >
               <Menu className="w-6 h-6" aria-hidden="true" />
             </button>
             <div className="flex items-center">
               <div 
-                className="w-6 h-6 bg-primary-600 rounded flex items-center justify-center mr-2"
+                className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center mr-2"
                 role="img"
                 aria-label="Logo de PortAda"
               >

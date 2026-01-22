@@ -180,8 +180,8 @@ const PendingFilesView: React.FC = () => {
       {results && (
         <div className="space-y-6">
           {/* Summary Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-            <div className="flex items-center justify-between mb-4">
+          <div className="card-dark">
+            <div className="card-header-dark">
               <h2 className="text-xl font-bold text-white">Resumen de Ficheros Pendientes</h2>
               {lastUpdated && (
                 <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -192,36 +192,36 @@ const PendingFilesView: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-orange-400 mb-2">
-                  {results.count}
+              <div className="stat-card stat-card-warning">
+                <div className="stat-number stat-number-warning">
+                  {results.total_files}
                 </div>
-                <div className="text-slate-400">Ficheros Pendientes</div>
+                <div className="stat-label text-slate-400">Ficheros Pendientes</div>
               </div>
               
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">
-                  {results.files.reduce((acc, file) => acc + file.fileSize, 0) > 0 
-                    ? formatFileSize(results.files.reduce((acc, file) => acc + file.fileSize, 0))
+              <div className="stat-card stat-card-info">
+                <div className="stat-number stat-number-info">
+                  {results.pending_files.reduce((acc, file) => acc + file.size, 0) > 0 
+                    ? formatFileSize(results.pending_files.reduce((acc, file) => acc + file.size, 0))
                     : '0 B'
                   }
                 </div>
-                <div className="text-slate-400">Tamaño Total</div>
+                <div className="stat-label text-slate-400">Tamaño Total</div>
               </div>
               
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-400 mb-2">
-                  {new Set(results.files.map(f => f.publication)).size}
+              <div className="stat-card stat-card-success">
+                <div className="stat-number stat-number-success">
+                  {new Set(results.pending_files.map(f => f.publication)).size}
                 </div>
-                <div className="text-slate-400">Publicaciones</div>
+                <div className="stat-label text-slate-400">Publicaciones</div>
               </div>
             </div>
           </div>
 
           {/* Files List */}
-          {results.files.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-              <div className="p-6 border-b border-slate-800">
+          {results.pending_files.length > 0 && (
+            <div className="table-container table-dark">
+              <div className="table-header-dark">
                 <h3 className="text-lg font-bold text-white">Detalle de Ficheros</h3>
                 <p className="text-slate-400 text-sm">
                   Lista de ficheros pendientes de procesamiento
@@ -250,7 +250,7 @@ const PendingFilesView: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {results.files.map((file, index) => (
+                    {results.pending_files.map((file, index) => (
                       <tr key={index} className="hover:bg-slate-800/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
@@ -280,13 +280,13 @@ const PendingFilesView: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-slate-500" />
                             <span className="text-slate-300 text-sm">
-                              {new Date(file.uploadDate).toLocaleString()}
+                              {new Date(file.created_at).toLocaleString()}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-slate-300 font-mono text-sm">
-                            {formatFileSize(file.fileSize)}
+                            {formatFileSize(file.size)}
                           </span>
                         </td>
                       </tr>
@@ -298,7 +298,7 @@ const PendingFilesView: React.FC = () => {
           )}
 
           {/* Empty State */}
-          {results.count === 0 && (
+          {results.total_files === 0 && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center">
               <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-slate-300 mb-2">

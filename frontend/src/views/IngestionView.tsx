@@ -199,16 +199,16 @@ const IngestionView: React.FC = () => {
           <button
             onClick={() => handleTypeChange('extraction_data')}
             className={clsx(
-              'p-4 border-2 rounded-lg text-left transition-colors',
+              'p-4 border-2 rounded-xl text-left transition-all duration-200',
               selectedType === 'extraction_data'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
             )}
           >
             <div className="flex items-center">
               <FileText className={clsx(
                 'w-6 h-6 mr-3',
-                selectedType === 'extraction_data' ? 'text-primary-600' : 'text-gray-400'
+                selectedType === 'extraction_data' ? 'text-blue-600' : 'text-gray-400'
               )} />
               <div>
                 <h3 className="font-medium text-gray-900">Datos de Extracción</h3>
@@ -220,16 +220,16 @@ const IngestionView: React.FC = () => {
           <button
             onClick={() => handleTypeChange('known_entities')}
             className={clsx(
-              'p-4 border-2 rounded-lg text-left transition-colors',
+              'p-4 border-2 rounded-xl text-left transition-all duration-200',
               selectedType === 'known_entities'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
             )}
           >
             <div className="flex items-center">
               <Database className={clsx(
                 'w-6 h-6 mr-3',
-                selectedType === 'known_entities' ? 'text-primary-600' : 'text-gray-400'
+                selectedType === 'known_entities' ? 'text-blue-600' : 'text-gray-400'
               )} />
               <div>
                 <h3 className="font-medium text-gray-900">Entidades Conocidas</h3>
@@ -247,16 +247,16 @@ const IngestionView: React.FC = () => {
           <button
             onClick={() => handleModeChange('single')}
             className={clsx(
-              'p-4 border-2 rounded-lg text-left transition-colors',
+              'p-4 border-2 rounded-xl text-left transition-all duration-200',
               uploadMode === 'single'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
             )}
           >
             <div className="flex items-center">
               <FileText className={clsx(
                 'w-6 h-6 mr-3',
-                uploadMode === 'single' ? 'text-primary-600' : 'text-gray-400'
+                uploadMode === 'single' ? 'text-blue-600' : 'text-gray-400'
               )} />
               <div>
                 <h3 className="font-medium text-gray-900">Archivo Individual</h3>
@@ -268,16 +268,16 @@ const IngestionView: React.FC = () => {
           <button
             onClick={() => handleModeChange('bulk')}
             className={clsx(
-              'p-4 border-2 rounded-lg text-left transition-colors',
+              'p-4 border-2 rounded-xl text-left transition-all duration-200',
               uploadMode === 'bulk'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
             )}
           >
             <div className="flex items-center">
               <FileStack className={clsx(
                 'w-6 h-6 mr-3',
-                uploadMode === 'bulk' ? 'text-primary-600' : 'text-gray-400'
+                uploadMode === 'bulk' ? 'text-blue-600' : 'text-gray-400'
               )} />
               <div>
                 <h3 className="font-medium text-gray-900">Carga Masiva</h3>
@@ -358,10 +358,10 @@ const IngestionView: React.FC = () => {
             <div
               {...getRootProps()}
               className={clsx(
-                'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
+                'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200',
                 isDragActive
-                  ? 'border-primary-400 bg-primary-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-blue-400 bg-blue-50'
+                  : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
               )}
             >
               <input {...getInputProps()} />
@@ -374,10 +374,10 @@ const IngestionView: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <FileText className="w-8 h-8 text-primary-600 mr-3" />
+                  <FileText className="w-8 h-8 text-blue-600 mr-3" />
                   <div>
                     <p className="font-medium text-gray-900">{selectedFile.name}</p>
                     <p className="text-sm text-gray-600">
@@ -401,9 +401,9 @@ const IngestionView: React.FC = () => {
                     <span className="text-sm text-gray-600">Subiendo archivo...</span>
                     <span className="text-sm text-gray-600">{uploadProgress}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="progress-bar">
                     <div
-                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      className="progress-fill"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -412,9 +412,9 @@ const IngestionView: React.FC = () => {
 
               {/* Upload Result */}
               {uploadResult && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl">
                   <div className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                     <div>
                       <p className="text-sm font-medium text-green-800">
                         Archivo procesado exitosamente

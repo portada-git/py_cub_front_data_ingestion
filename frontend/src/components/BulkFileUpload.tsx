@@ -373,8 +373,8 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
 
       {/* Statistics Dashboard */}
       {files.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="card-dark">
+          <div className="card-header-dark">
             <h3 className="text-lg font-semibold text-white flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
               Estadísticas de Procesamiento
@@ -384,7 +384,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                 <button
                   onClick={startProcessing}
                   disabled={stats.pending === 0}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-success"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Iniciar Procesamiento
@@ -392,7 +392,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
               ) : isPaused ? (
                 <button
                   onClick={resumeProcessing}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                  className="btn btn-primary"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Reanudar
@@ -400,7 +400,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
               ) : (
                 <button
                   onClick={pauseProcessing}
-                  className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500 transition-colors"
+                  className="btn btn-warning"
                 >
                   <Pause className="w-4 h-4 mr-2" />
                   Pausar
@@ -410,7 +410,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
               {stats.error > 0 && (
                 <button
                   onClick={retryFailed}
-                  className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500 transition-colors"
+                  className="btn btn-warning"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Reintentar Errores
@@ -419,7 +419,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
               
               <button
                 onClick={clearAll}
-                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
+                className="btn btn-danger"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Limpiar Todo
@@ -428,30 +428,30 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
           </div>
 
           {/* Progress Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-400">{stats.total}</div>
-              <div className="text-sm text-slate-400">Total</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="stat-card stat-card-primary">
+              <div className="stat-number stat-number-primary">{stats.total}</div>
+              <div className="stat-label text-slate-400">Total</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{stats.pending}</div>
-              <div className="text-sm text-slate-400">Pendientes</div>
+            <div className="stat-card stat-card-warning">
+              <div className="stat-number stat-number-warning">{stats.pending}</div>
+              <div className="stat-label text-slate-400">Pendientes</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-400">{stats.uploading}</div>
-              <div className="text-sm text-slate-400">Subiendo</div>
+            <div className="stat-card stat-card-info">
+              <div className="stat-number stat-number-info">{stats.uploading}</div>
+              <div className="stat-label text-slate-400">Subiendo</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{stats.success}</div>
-              <div className="text-sm text-slate-400">Exitosos</div>
+            <div className="stat-card stat-card-success">
+              <div className="stat-number stat-number-success">{stats.success}</div>
+              <div className="stat-label text-slate-400">Exitosos</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-400">{stats.error}</div>
-              <div className="text-sm text-slate-400">Errores</div>
+            <div className="stat-card stat-card-error">
+              <div className="stat-number stat-number-error">{stats.error}</div>
+              <div className="stat-label text-slate-400">Errores</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-cyan-400">{stats.totalRecordsProcessed.toLocaleString()}</div>
-              <div className="text-sm text-slate-400">Registros</div>
+            <div className="stat-card stat-card-info">
+              <div className="stat-number stat-number-info">{stats.totalRecordsProcessed.toLocaleString()}</div>
+              <div className="stat-label text-slate-400">Registros</div>
             </div>
           </div>
 
@@ -461,9 +461,9 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
               <span>Progreso General</span>
               <span>{Math.round((stats.success / stats.total) * 100)}%</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-3">
+            <div className="progress-bar bg-slate-800">
               <div
-                className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-300"
+                className="progress-fill progress-fill-success"
                 style={{ width: `${(stats.success / stats.total) * 100}%` }}
               />
             </div>
@@ -489,8 +489,8 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
 
       {/* File List */}
       {files.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="table-container">
+          <div className="table-header">
             <h3 className="font-semibold text-gray-900">
               Lista de Archivos ({files.length})
             </h3>
