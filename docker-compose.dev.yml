@@ -6,13 +6,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       - SECRET_KEY=dev-secret-key
       - PORTADA_BASE_PATH=/app/data
       - PORTADA_APP_NAME=PortAdaAPI
       - PORTADA_PROJECT_NAME=portada_ingestion
-      - ALLOWED_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000
     volumes:
       - ./backend:/app
       - portada_data:/app/data
@@ -28,7 +28,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8001
     volumes:
       - ./frontend:/app
       - /app/node_modules

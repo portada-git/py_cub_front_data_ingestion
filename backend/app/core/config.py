@@ -26,16 +26,28 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # CORS Configuration
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001", "http://localhost:5173"]
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173"
+    
+    @property
+    def cors_origins(self) -> List[str]:
+        """Parse CORS origins from string"""
+        if isinstance(self.ALLOWED_ORIGINS, str):
+            # Handle comma-separated string format
+            if self.ALLOWED_ORIGINS.startswith('[') and self.ALLOWED_ORIGINS.endswith(']'):
+                # Handle JSON array format (legacy)
+                import json
+                try:
+                    return json.loads(self.ALLOWED_ORIGINS)
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, treat as comma-separated
+                    return [origin.strip() for origin in self.ALLOWED_ORIGINS.strip('[]').replace('"', '').split(',') if origin.strip()]
+            else:
+                # Handle comma-separated format
+                return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(',') if origin.strip()]
+        return [self.ALLOWED_ORIGINS]
     
     # Logging
     LOG_LEVEL: str = "INFO"
-    
-    @validator('ALLOWED_ORIGINS', pre=True)
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(',')]
-        return v
     
     def validate_config(self) -> None:
         """Validate required configuration parameters"""

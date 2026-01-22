@@ -232,7 +232,27 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
       let errorMessage = t('notifications.unknownError');
       
       if (error instanceof Error) {
-        if (error.message.includes('Publication is required')) {
+        // Handle structured error responses from backend
+        const apiError = error as any;
+        if (apiError.details && apiError.details.error_code) {
+          switch (apiError.details.error_code) {
+            case 'PUBLICATION_REQUIRED':
+              errorMessage = t('notifications.publicationRequired');
+              break;
+            case 'FILE_VALIDATION_ERROR':
+              errorMessage = apiError.details.errors ? 
+                apiError.details.errors.join('. ') : 
+                t('notifications.invalidFormat', { filename: fileItem.file.name });
+              break;
+            case 'VALIDATION_ERROR':
+              errorMessage = apiError.details.errors ? 
+                apiError.details.errors.join('. ') : 
+                t('notifications.validationError');
+              break;
+            default:
+              errorMessage = apiError.details.message || error.message;
+          }
+        } else if (error.message.includes('Publication is required')) {
           errorMessage = t('notifications.publicationRequired');
         } else if (error.message.includes('validation error')) {
           errorMessage = t('notifications.validationError');

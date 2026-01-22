@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
     try:
         settings.validate_config()
         logger.info("Configuration validated successfully")
+        logger.info(f"CORS allowed origins: {settings.cors_origins}")
     except Exception as e:
         logger.error(f"Configuration validation failed: {e}")
         raise
@@ -56,13 +57,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add CORS middleware first (most important for preflight requests)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Add trusted host middleware for security
@@ -100,12 +102,22 @@ async def health_check():
     return {"status": "healthy", "service": "portada-api"}
 
 
+@app.get("/api/cors-test")
+async def cors_test():
+    """CORS test endpoint"""
+    return {
+        "message": "CORS is working",
+        "allowed_origins": settings.cors_origins,
+        "timestamp": "2026-01-22T16:30:00Z"
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=True,
         log_level=settings.LOG_LEVEL.lower()
     )

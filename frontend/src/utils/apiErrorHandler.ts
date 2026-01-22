@@ -150,6 +150,30 @@ export class ApiErrorHandler {
       return error.details.errors.join('. ');
     }
     
+    // Handle specific error codes from backend
+    if (error.details && error.details.error_code) {
+      switch (error.details.error_code) {
+        case 'PUBLICATION_REQUIRED':
+          return 'Please select a publication before uploading extraction data files.';
+        case 'ENTITY_NAME_REQUIRED':
+          return 'Please provide an entity name for known entities ingestion.';
+        case 'FILE_REQUIRED':
+          return 'Please select a file to upload.';
+        case 'FILE_VALIDATION_ERROR':
+          if (error.details.errors && Array.isArray(error.details.errors)) {
+            return error.details.errors.join('. ');
+          }
+          return 'The selected file is invalid. Please check the file format and try again.';
+        case 'VALIDATION_ERROR':
+          if (error.details.errors && Array.isArray(error.details.errors)) {
+            return error.details.errors.join('. ');
+          }
+          return 'Please check your input and try again.';
+        default:
+          break;
+      }
+    }
+    
     // Handle FastAPI validation errors format
     if (error.details && Array.isArray(error.details)) {
       const messages = error.details.map((detail: any) => {
