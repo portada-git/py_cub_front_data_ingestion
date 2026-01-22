@@ -310,13 +310,13 @@ This implementation plan breaks down the PortAda Data Ingestion and Analysis Sys
     - _Requirements: 2.1-2.8, 3.1-3.8, 4.1-4.4_
 
 - [-] 16. Frontend Analysis Dashboard
-  - [-] 16.1 Create analysis query forms
+  - [x] 16.1 Create analysis query forms
     - Implement forms for all analysis query types
     - Add parameter validation and date pickers
     - Create filter components for complex queries
     - _Requirements: 15.3, 15.4_
 
-  - [ ] 16.2 Implement results display components
+  - [-] 16.2 Implement results display components
     - Create scrollable tables for large result sets
     - Implement master-detail views for complex data
     - Add pagination or virtual scrolling for performance

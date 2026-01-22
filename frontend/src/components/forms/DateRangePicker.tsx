@@ -16,7 +16,6 @@ interface DateRangePickerProps {
   value?: DateRange;
   onChange: (range: DateRange | null) => void;
   label?: string;
-  placeholder?: string;
   required?: boolean;
   disabled?: boolean;
   minDate?: string;
@@ -29,7 +28,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   value,
   onChange,
   label = 'Rango de Fechas',
-  placeholder = 'Selecciona un rango de fechas',
   required = false,
   disabled = false,
   minDate,
