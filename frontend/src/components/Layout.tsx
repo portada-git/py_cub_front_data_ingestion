@@ -11,11 +11,11 @@ import {
   BarChart3, 
   Database, 
   LogOut,
-  Menu,
-  X
+  Menu
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUIStore } from '../store/useStore';
+import MobileMenu from './MobileMenu';
 import clsx from 'clsx';
 
 interface LayoutProps {
@@ -60,10 +60,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <div className={clsx(
-        'fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        'hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white shadow-lg'
       )}>
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -79,12 +78,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <p className="text-xs text-gray-500">Sistema de Ingestión</p>
               </div>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Navigation */}
@@ -158,8 +151,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Top bar */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+        {/* Mobile top bar */}
         <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
             <button
@@ -168,26 +161,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">PortAda</h1>
+            <div className="flex items-center">
+              <div className="w-6 h-6 bg-primary-600 rounded flex items-center justify-center mr-2">
+                <Database className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-lg font-semibold text-gray-900">PortAda</h1>
+            </div>
             <div className="w-10" /> {/* Spacer */}
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Sidebar overlay for mobile */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
     </div>
   );
 };

@@ -12,17 +12,16 @@ import LoginView from './views/LoginView';
 import DashboardView from './views/DashboardView';
 import IngestionView from './views/IngestionView';
 import AnalysisView from './views/AnalysisView';
+import ProtectedRoute from './components/ProtectedRoute';
 import NotificationContainer from './components/NotificationContainer';
 
 // Protected Route component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
+const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ProtectedRoute>
+      {children}
+    </ProtectedRoute>
+  );
 };
 
 // Error Boundary component
@@ -102,7 +101,7 @@ const App: React.FC = () => {
           <Route
             path="/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -112,7 +111,7 @@ const App: React.FC = () => {
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
         </Routes>
