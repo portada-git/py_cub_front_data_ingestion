@@ -1,6 +1,6 @@
 /**
- * API service for PortAda backend integration
- * Modern implementation with proper error handling and TypeScript support
+ * Enhanced API service for PortAda backend integration
+ * Features: error handling, request/response interceptors, retry logic, and TypeScript support
  */
 
 import { 
@@ -20,14 +20,82 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
 
+// Types for interceptors
+type RequestInterceptor = (config: RequestInit & { url: string }) => RequestInit & { url: string };
+type ResponseInterceptor = (response: Response) => Response | Promise<Response>;
+type ErrorInterceptor = (error: Error) => Error | Promise<Error>;
+
+interface RetryConfig {
+  maxRetries: number;
+  retryDelay: number;
+  retryCondition?: (error: Error) => boolean;
+}
+
+interface ApiError extends Error {
+  status?: number;
+  code?: string;
+  details?: any;
+}
+
 class ApiService {
   private baseUrl: string;
   private token: string | null = null;
+  private requestInterceptors: RequestInterceptor[] = [];
+  private responseInterceptors: ResponseInterceptor[] = [];
+  private errorInterceptors: ErrorInterceptor[] = [];
+  private retryConfig: RetryConfig = {
+    maxRetries: 3,
+    retryDelay: 1000,
+    retryCondition: (error: ApiError) => {
+      // Retry on network errors or 5xx server errors
+      return !error.status || error.status >= 500;
+    }
+  };
 
   constructor() {
     this.baseUrl = API_BASE_URL;
     // Load token from localStorage on initialization
     this.token = localStorage.getItem('access_token');
+    
+    // Set up default interceptors
+    this.setupDefaultInterceptors();
+  }
+
+  private setupDefaultInterceptors() {
+    // Request interceptor for logging
+    this.addRequestInterceptor((config) => {
+      console.log(`[API] ${config.method || 'GET'} ${config.url}`);
+      return config;
+    });
+
+    // Response interceptor for logging
+    this.addResponseInterceptor((response) => {
+      console.log(`[API] Response ${response.status} for ${response.url}`);
+      return response;
+    });
+
+    // Error interceptor for enhanced error handling
+    this.addErrorInterceptor((error: ApiError) => {
+      console.error('[API] Error:', error.message, error.details);
+      return error;
+    });
+  }
+
+  // Interceptor management
+  addRequestInterceptor(interceptor: RequestInterceptor): void {
+    this.requestInterceptors.push(interceptor);
+  }
+
+  addResponseInterceptor(interceptor: ResponseInterceptor): void {
+    this.responseInterceptors.push(interceptor);
+  }
+
+  addErrorInterceptor(interceptor: ErrorInterceptor): void {
+    this.errorInterceptors.push(interceptor);
+  }
+
+  setRetryConfig(config: Partial<RetryConfig>): void {
+    this.retryConfig = { ...this.retryConfig, ...config };
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -42,39 +110,227 @@ class ApiService {
     return headers;
   }
 
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private createApiError(message: string, status?: number, details?: any): ApiError {
+    const error = new Error(message) as ApiError;
+    error.status = status;
+    error.details = details;
+    return error;
+  }
+
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    attempt: number = 1
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      const apiError = error as ApiError;
+      
+      // Apply error interceptors
+      let processedError = apiError;
+      for (const interceptor of this.errorInterceptors) {
+        processedError = await interceptor(processedError);
+      }
+
+      // Check if we should retry
+      if (
+        attempt < this.retryConfig.maxRetries &&
+        this.retryConfig.retryCondition?.(processedError)
+      ) {
+        console.log(`[API] Retrying request (attempt ${attempt + 1}/${this.retryConfig.maxRetries})`);
+        await this.sleep(this.retryConfig.retryDelay * attempt);
+        return this.executeWithRetry(operation, attempt + 1);
+      }
+
+      throw processedError;
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        ...this.getAuthHeaders(),
-        ...options.headers,
-      },
-    };
-
-    try {
-      const response = await fetch(url, config);
+    return this.executeWithRetry(async () => {
+      const url = `${this.baseUrl}${endpoint}`;
       
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid, clear it
-          this.clearToken();
-          throw new Error('Authentication required');
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
+      let config: RequestInit & { url: string } = {
+        ...options,
+        url,
+        headers: {
+          ...this.getAuthHeaders(),
+          ...options.headers,
+        },
+      };
+
+      // Apply request interceptors
+      for (const interceptor of this.requestInterceptors) {
+        config = interceptor(config);
       }
 
-      return await response.json();
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
-    }
+      try {
+        let response = await fetch(config.url, config);
+        
+        // Apply response interceptors
+        for (const interceptor of this.responseInterceptors) {
+          response = await interceptor(response);
+        }
+        
+        if (!response.ok) {
+          let errorData: any = {};
+          try {
+            errorData = await response.json();
+          } catch {
+            // Response is not JSON
+          }
+
+          if (response.status === 401) {
+            // Token expired or invalid, clear it
+            this.clearToken();
+            throw this.createApiError('Authentication required', 401, errorData);
+          }
+          
+          const message = errorData.detail || errorData.message || `HTTP error! status: ${response.status}`;
+          throw this.createApiError(message, response.status, errorData);
+        }
+
+        // Handle empty responses
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        } else {
+          return {} as T;
+        }
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          // Network error
+          throw this.createApiError('Network error: Unable to connect to server', undefined, error);
+        }
+        throw error;
+      }
+    });
+  }
+
+  // File upload with enhanced error handling
+  private async uploadRequest<T>(
+    endpoint: string,
+    formData: FormData,
+    onProgress?: (progress: number) => void
+  ): Promise<T> {
+    return this.executeWithRetry(async () => {
+      const url = `${this.baseUrl}${endpoint}`;
+      
+      let config: RequestInit & { url: string } = {
+        method: 'POST',
+        url,
+        headers: {
+          // Don't set Content-Type for FormData, let browser set it
+          'Authorization': this.token ? `Bearer ${this.token}` : '',
+        },
+        body: formData,
+      };
+
+      // Apply request interceptors (excluding Content-Type for FormData)
+      for (const interceptor of this.requestInterceptors) {
+        config = interceptor(config);
+      }
+
+      try {
+        // Create XMLHttpRequest for progress tracking if callback provided
+        if (onProgress) {
+          return new Promise<T>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable) {
+                const progress = (event.loaded / event.total) * 100;
+                onProgress(progress);
+              }
+            });
+
+            xhr.addEventListener('load', async () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const result = JSON.parse(xhr.responseText);
+                  resolve(result);
+                } catch {
+                  resolve({} as T);
+                }
+              } else {
+                let errorData: any = {};
+                try {
+                  errorData = JSON.parse(xhr.responseText);
+                } catch {
+                  // Response is not JSON
+                }
+                
+                if (xhr.status === 401) {
+                  this.clearToken();
+                  reject(this.createApiError('Authentication required', 401, errorData));
+                } else {
+                  const message = errorData.detail || errorData.message || `HTTP error! status: ${xhr.status}`;
+                  reject(this.createApiError(message, xhr.status, errorData));
+                }
+              }
+            });
+
+            xhr.addEventListener('error', () => {
+              reject(this.createApiError('Network error: Upload failed', undefined, xhr));
+            });
+
+            xhr.open('POST', config.url);
+            if (config.headers && typeof config.headers === 'object') {
+              Object.entries(config.headers).forEach(([key, value]) => {
+                if (key !== 'Content-Type' && typeof value === 'string') {
+                  xhr.setRequestHeader(key, value);
+                }
+              });
+            }
+            xhr.send(formData);
+          });
+        } else {
+          // Use fetch for simple uploads without progress
+          let response = await fetch(config.url, config);
+          
+          // Apply response interceptors
+          for (const interceptor of this.responseInterceptors) {
+            response = await interceptor(response);
+          }
+          
+          if (!response.ok) {
+            let errorData: any = {};
+            try {
+              errorData = await response.json();
+            } catch {
+              // Response is not JSON
+            }
+
+            if (response.status === 401) {
+              this.clearToken();
+              throw this.createApiError('Authentication required', 401, errorData);
+            }
+            
+            const message = errorData.detail || errorData.message || `HTTP error! status: ${response.status}`;
+            throw this.createApiError(message, response.status, errorData);
+          }
+
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+          } else {
+            return {} as T;
+          }
+        }
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw this.createApiError('Network error: Unable to connect to server', undefined, error);
+        }
+        throw error;
+      }
+    });
   }
 
   setToken(token: string) {
@@ -125,7 +381,8 @@ class ApiService {
     ingestionType: 'extraction_data' | 'known_entities',
     publication?: string,
     entityName?: string,
-    dataPathDeltaLake?: string
+    dataPathDeltaLake?: string,
+    onProgress?: (progress: number) => void
   ): Promise<IngestionResponse> {
     const formData = new FormData();
     formData.append('file', file);
@@ -141,14 +398,7 @@ class ApiService {
       formData.append('data_path_delta_lake', dataPathDeltaLake);
     }
 
-    return this.request<IngestionResponse>('/ingestion/upload', {
-      method: 'POST',
-      headers: {
-        // Don't set Content-Type for FormData, let browser set it
-        'Authorization': this.token ? `Bearer ${this.token}` : '',
-      },
-      body: formData,
-    });
+    return this.uploadRequest<IngestionResponse>('/ingestion/upload', formData, onProgress);
   }
 
   async getIngestionStatus(taskId: string): Promise<IngestionStatusResponse> {
@@ -199,17 +449,11 @@ class ApiService {
     });
   }
 
-  async analyzeMissingDatesFile(file: File): Promise<MissingDatesResponse> {
+  async analyzeMissingDatesFile(file: File, onProgress?: (progress: number) => void): Promise<MissingDatesResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.request<MissingDatesResponse>('/analysis/missing-dates', {
-      method: 'POST',
-      headers: {
-        'Authorization': this.token ? `Bearer ${this.token}` : '',
-      },
-      body: formData,
-    });
+    return this.uploadRequest<MissingDatesResponse>('/analysis/missing-dates', formData, onProgress);
   }
 
   async analyzeMissingDatesRange(request: {
@@ -223,18 +467,12 @@ class ApiService {
     });
   }
 
-  async uploadDatesFile(file: File, publicationName: string) {
+  async uploadDatesFile(file: File, publicationName: string, onProgress?: (progress: number) => void) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('publication_name', publicationName);
 
-    return this.request('/analysis/missing-dates/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': this.token ? `Bearer ${this.token}` : '',
-      },
-      body: formData,
-    });
+    return this.uploadRequest('/analysis/missing-dates/upload', formData, onProgress);
   }
 
   // Analysis - Duplicates

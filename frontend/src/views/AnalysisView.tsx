@@ -5,26 +5,26 @@
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import PendingFilesAnalysis from '../components/analysis/PendingFilesAnalysis';
-import MissingDatesAnalysis from '../components/analysis/MissingDatesAnalysis';
-import DuplicatesAnalysis from '../components/analysis/DuplicatesAnalysis';
-import DailyEntriesAnalysis from '../components/analysis/DailyEntriesAnalysis';
-import KnownEntitiesAnalysis from '../components/analysis/KnownEntitiesAnalysis';
-import StorageMetadataAnalysis from '../components/analysis/StorageMetadataAnalysis';
-import ProcessMetadataAnalysis from '../components/analysis/ProcessMetadataAnalysis';
+import PendingFilesView from './PendingFilesView';
+import MissingDatesView from './MissingDatesView';
+import DuplicatesView from './DuplicatesView';
+import DailyEntriesView from './DailyEntriesView';
+import KnownEntitiesView from './KnownEntitiesView';
+import StorageMetadataView from './StorageMetadataView';
+import ProcessMetadataView from './ProcessMetadataView';
 
 const AnalysisView: React.FC = () => {
   return (
     <div className="space-y-6">
       <Routes>
         <Route path="/" element={<Navigate to="pending-files" replace />} />
-        <Route path="pending-files" element={<PendingFilesAnalysis />} />
-        <Route path="missing-dates" element={<MissingDatesAnalysis />} />
-        <Route path="duplicates" element={<DuplicatesAnalysis />} />
-        <Route path="daily-entries" element={<DailyEntriesAnalysis />} />
-        <Route path="known-entities" element={<KnownEntitiesAnalysis />} />
-        <Route path="storage-metadata" element={<StorageMetadataAnalysis />} />
-        <Route path="process-metadata" element={<ProcessMetadataAnalysis />} />
+        <Route path="pending-files" element={<PendingFilesView />} />
+        <Route path="missing-dates" element={<MissingDatesView />} />
+        <Route path="duplicates" element={<DuplicatesView />} />
+        <Route path="daily-entries" element={<DailyEntriesView />} />
+        <Route path="known-entities" element={<KnownEntitiesView />} />
+        <Route path="storage-metadata" element={<StorageMetadataView />} />
+        <Route path="process-metadata" element={<ProcessMetadataView />} />
         <Route path="*" element={<Navigate to="pending-files" replace />} />
       </Routes>
     </div>

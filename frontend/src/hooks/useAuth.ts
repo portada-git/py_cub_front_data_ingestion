@@ -38,14 +38,50 @@ export const useAuth = () => {
     }
 
     try {
-      // Verify token is still valid by making a request to the backend
+      // Only check if token exists and is not expired
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        await handleLogout();
+        return false;
+      }
+
+      // Check token expiry without making API call
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiryTime = payload.exp ? new Date(payload.exp * 1000) : null;
+        
+        if (expiryTime && expiryTime.getTime() <= Date.now()) {
+          // Token expired
+          await handleLogout();
+          return false;
+        }
+        
+        return true;
+      } catch (tokenError) {
+        // Invalid token format
+        await handleLogout();
+        return false;
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      await handleLogout();
+      return false;
+    }
+  }, [isAuthenticated, user, handleLogout]);
+
+  const validateTokenWithServer = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
+    try {
       const currentUser = await apiService.getCurrentUser();
       if (currentUser) {
         setUser({ ...user, ...currentUser });
         return true;
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('Server auth validation failed:', error);
       await handleLogout();
       return false;
     }
@@ -67,6 +103,7 @@ export const useAuth = () => {
     login: handleLogin,
     logout: handleLogout,
     checkAuthStatus,
+    validateTokenWithServer,
     hasPermission,
     hasRole,
   };

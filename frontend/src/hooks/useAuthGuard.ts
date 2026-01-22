@@ -3,7 +3,7 @@
  * Handles route protection and authentication state validation
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
 
@@ -20,9 +20,15 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}) => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const hasValidatedRef = useRef(false);
 
   useEffect(() => {
     const validateAuth = async () => {
+      // Prevent multiple validations
+      if (hasValidatedRef.current) {
+        return;
+      }
+
       setIsLoading(true);
 
       // Check if user is authenticated
@@ -35,7 +41,8 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}) => {
         return;
       }
 
-      // Verify authentication status with backend
+      // Only verify authentication status if we haven't validated yet
+      // and avoid making API calls on every render
       const isValid = await checkAuthStatus();
       if (!isValid) {
         navigate(redirectTo, { 
@@ -60,22 +67,42 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}) => {
         return;
       }
 
+      hasValidatedRef.current = true;
       setIsAuthorized(true);
       setIsLoading(false);
     };
 
-    validateAuth();
+    // Only validate if not already authenticated or if route changed
+    if (!isAuthenticated || !hasValidatedRef.current) {
+      validateAuth();
+    } else {
+      // If already authenticated and validated, just check permissions
+      const hasRequiredPermission = !requiredPermission || hasPermission(requiredPermission);
+      const hasRequiredRole = !requiredRole || hasRole(requiredRole);
+      
+      if (!hasRequiredPermission || !hasRequiredRole) {
+        navigate('/unauthorized', { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsAuthorized(true);
+      setIsLoading(false);
+    }
   }, [
     isAuthenticated,
-    checkAuthStatus,
-    hasPermission,
-    hasRole,
     requiredPermission,
     requiredRole,
-    navigate,
-    redirectTo,
-    location.pathname
+    location.pathname // Only re-validate when route changes
   ]);
+
+  // Reset validation when authentication state changes
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasValidatedRef.current = false;
+      setIsAuthorized(false);
+    }
+  }, [isAuthenticated]);
 
   return {
     isLoading,

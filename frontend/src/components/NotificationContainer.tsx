@@ -1,15 +1,23 @@
 /**
  * Notification container component
- * Displays toast notifications with auto-dismiss
+ * Displays toast notifications with accessibility features
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { useNotificationStore } from '../store/useStore';
+import { ApiErrorHandler } from '../utils/apiErrorHandler';
 import clsx from 'clsx';
 
 const NotificationContainer: React.FC = () => {
   const { notifications, removeNotification } = useNotificationStore();
+
+  // Set up the error handler callback
+  useEffect(() => {
+    ApiErrorHandler.setNotificationCallback((notification) => {
+      useNotificationStore.getState().addNotification(notification);
+    });
+  }, []);
 
   if (notifications.length === 0) {
     return null;
@@ -18,14 +26,14 @@ const NotificationContainer: React.FC = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-400" />;
+        return <CheckCircle className="w-5 h-5 text-green-400" aria-hidden="true" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-400" />;
+        return <XCircle className="w-5 h-5 text-red-400" aria-hidden="true" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
+        return <AlertTriangle className="w-5 h-5 text-yellow-400" aria-hidden="true" />;
       case 'info':
       default:
-        return <Info className="w-5 h-5 text-blue-400" />;
+        return <Info className="w-5 h-5 text-blue-400" aria-hidden="true" />;
     }
   };
 
@@ -44,7 +52,12 @@ const NotificationContainer: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+    <div 
+      className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full"
+      role="region"
+      aria-label="Notificaciones"
+      aria-live="polite"
+    >
       {notifications.map((notification) => (
         <div
           key={notification.id}
@@ -52,6 +65,8 @@ const NotificationContainer: React.FC = () => {
             'rounded-lg border p-4 shadow-lg transition-all duration-300 ease-in-out',
             getBackgroundColor(notification.type)
           )}
+          role="alert"
+          aria-live={notification.type === 'error' ? 'assertive' : 'polite'}
         >
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -68,9 +83,10 @@ const NotificationContainer: React.FC = () => {
             <div className="ml-4 flex-shrink-0">
               <button
                 onClick={() => removeNotification(notification.id)}
-                className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500 transition-colors"
+                className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded transition-colors"
+                aria-label={`Cerrar notificación: ${notification.title}`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>

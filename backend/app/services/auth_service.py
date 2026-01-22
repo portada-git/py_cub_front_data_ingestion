@@ -47,13 +47,45 @@ class AuthService:
                 "email": "viewer@portada.com",
                 "is_active": True
             }
-        
+        }
         # Active sessions storage - in production, use Redis
         self.active_sessions = {}
+    
+    def create_new_admin_user(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Create a new admin user with the given username
+        
+        Args:
+            username: Username for the new user
+            
+        Returns:
+            User information if creation successful, None otherwise
+        """
+        try:
+            # Create new admin user
+            new_user = {
+                "username": username,
+                "role": "admin",
+                "permissions": ["read", "write", "admin"],
+                "full_name": f"Administrador {username.title()}",
+                "email": f"{username}@portada.com",
+                "is_active": True
+            }
+            
+            # Add to users database
+            self.users_db[username] = new_user
+            
+            logger.info(f"Created new admin user: {username}")
+            return new_user
+            
+        except Exception as e:
+            logger.error(f"Error creating new user '{username}': {e}")
+            return None
     
     def authenticate_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
         """
         Authenticate a user by username only (no password required)
+        Auto-creates admin users for new usernames
         
         Args:
             username: User's username
@@ -63,9 +95,14 @@ class AuthService:
         """
         try:
             user = self.users_db.get(username)
+            
+            # Auto-create user if doesn't exist
             if not user:
-                logger.warning(f"Authentication failed: user '{username}' not found")
-                return None
+                logger.info(f"User '{username}' not found, creating new admin user")
+                user = self.create_new_admin_user(username)
+                if not user:
+                    logger.error(f"Failed to create new user '{username}'")
+                    return None
             
             if not user.get("is_active", False):
                 logger.warning(f"Authentication failed: user '{username}' is inactive")

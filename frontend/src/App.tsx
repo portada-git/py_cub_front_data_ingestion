@@ -14,6 +14,7 @@ import IngestionView from './views/IngestionView';
 import AnalysisView from './views/AnalysisView';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationContainer from './components/NotificationContainer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route component
 const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -24,74 +25,25 @@ const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
-// Error Boundary component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error boundary caught an error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-semibold text-gray-900 text-center mb-2">
-              Error de la aplicación
-            </h1>
-            <p className="text-gray-600 text-center mb-4">
-              Ha ocurrido un error inesperado. Por favor, recarga la página.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full btn btn-primary"
-            >
-              Recargar página
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 const App: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   
-  // Initialize session management for authenticated users
+  // Initialize session management for authenticated users with longer intervals
   useSession({
-    refreshThreshold: 5, // Refresh 5 minutes before expiry
-    warningThreshold: 2, // Show warning 2 minutes before expiry
-    checkInterval: 1, // Check every minute
+    refreshThreshold: 10, // Refresh 10 minutes before expiry
+    warningThreshold: 5, // Show warning 5 minutes before expiry
+    checkInterval: 10, // Check every 10 minutes instead of 1
   });
 
-  // Initialize authentication state from localStorage
+  // Initialize authentication state from localStorage only once
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token && !isAuthenticated) {
       // Token exists but user is not authenticated, validate token
-      // This would typically involve checking with the server
-      console.log('Token found, validating...');
+      console.log('Token found in localStorage');
+      // Don't make API call here, let the session hook handle it
     }
-  }, [isAuthenticated]);
+  }, []); // Remove isAuthenticated dependency to prevent re-runs
 
   return (
     <ErrorBoundary>

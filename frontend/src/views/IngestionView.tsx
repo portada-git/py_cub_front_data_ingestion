@@ -14,11 +14,14 @@ import {
   CheckCircle, 
   AlertCircle, 
   Clock,
-  X
+  X,
+  Layers,
+  FileStack
 } from 'lucide-react';
 import { useIngestionStore, useNotificationStore } from '../store/useStore';
 import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BulkFileUpload from '../components/BulkFileUpload';
 import clsx from 'clsx';
 
 type IngestionType = 'extraction_data' | 'known_entities';
@@ -31,6 +34,7 @@ const IngestionView: React.FC = () => {
   const [selectedType, setSelectedType] = useState<IngestionType>(
     (searchParams.get('type') as IngestionType) || 'extraction_data'
   );
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
   const [formData, setFormData] = useState({
     publication: '',
     entityName: 'known_entities',
@@ -76,6 +80,13 @@ const IngestionView: React.FC = () => {
   const handleTypeChange = (type: IngestionType) => {
     setSelectedType(type);
     setSearchParams({ type });
+    setSelectedFile(null);
+    setUploadResult(null);
+    setUploadMode('single'); // Reset to single mode when changing type
+  };
+
+  const handleModeChange = (mode: 'single' | 'bulk') => {
+    setUploadMode(mode);
     setSelectedFile(null);
     setUploadResult(null);
   };
@@ -158,6 +169,19 @@ const IngestionView: React.FC = () => {
     setUploadResult(null);
   };
 
+  const handleBulkUploadComplete = (stats: any) => {
+    addNotification({
+      type: 'success',
+      title: 'Carga masiva completada',
+      message: `Se procesaron ${stats.success} archivos exitosamente de ${stats.total} total. ${stats.totalRecordsProcessed} registros procesados.`
+    });
+  };
+
+  const handleFileProcessed = (file: any) => {
+    // Optional: Handle individual file completion
+    console.log('Archivo procesado:', file.file.name);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -210,6 +234,54 @@ const IngestionView: React.FC = () => {
               <div>
                 <h3 className="font-medium text-gray-900">Entidades Conocidas</h3>
                 <p className="text-sm text-gray-600">Archivos YAML con entidades</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Upload Mode Selection */}
+      <div className="card">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Modo de Carga</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={() => handleModeChange('single')}
+            className={clsx(
+              'p-4 border-2 rounded-lg text-left transition-colors',
+              uploadMode === 'single'
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-gray-200 hover:border-gray-300'
+            )}
+          >
+            <div className="flex items-center">
+              <FileText className={clsx(
+                'w-6 h-6 mr-3',
+                uploadMode === 'single' ? 'text-primary-600' : 'text-gray-400'
+              )} />
+              <div>
+                <h3 className="font-medium text-gray-900">Archivo Individual</h3>
+                <p className="text-sm text-gray-600">Sube un archivo a la vez</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleModeChange('bulk')}
+            className={clsx(
+              'p-4 border-2 rounded-lg text-left transition-colors',
+              uploadMode === 'bulk'
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-gray-200 hover:border-gray-300'
+            )}
+          >
+            <div className="flex items-center">
+              <FileStack className={clsx(
+                'w-6 h-6 mr-3',
+                uploadMode === 'bulk' ? 'text-primary-600' : 'text-gray-400'
+              )} />
+              <div>
+                <h3 className="font-medium text-gray-900">Carga Masiva</h3>
+                <p className="text-sm text-gray-600">Sube múltiples archivos (500+)</p>
               </div>
             </div>
           </button>
@@ -278,107 +350,130 @@ const IngestionView: React.FC = () => {
       )}
 
       {/* File Upload */}
-      <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Subir Archivo</h2>
-        
-        {!selectedFile ? (
-          <div
-            {...getRootProps()}
-            className={clsx(
-              'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-              isDragActive
-                ? 'border-primary-400 bg-primary-50'
-                : 'border-gray-300 hover:border-gray-400'
-            )}
-          >
-            <input {...getInputProps()} />
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-900 mb-2">
-              {isDragActive ? 'Suelta el archivo aquí' : 'Arrastra un archivo o haz clic para seleccionar'}
-            </p>
-            <p className="text-sm text-gray-600">
-              Formato requerido: {selectedType === 'extraction_data' ? 'JSON' : 'YAML'}
-            </p>
-          </div>
-        ) : (
-          <div className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FileText className="w-8 h-8 text-primary-600 mr-3" />
-                <div>
-                  <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={removeFile}
-                className="p-1 text-gray-400 hover:text-gray-600"
-                disabled={isUploading}
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {uploadMode === 'single' ? (
+        <div className="card">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Subir Archivo Individual</h2>
+          
+          {!selectedFile ? (
+            <div
+              {...getRootProps()}
+              className={clsx(
+                'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
+                isDragActive
+                  ? 'border-primary-400 bg-primary-50'
+                  : 'border-gray-300 hover:border-gray-400'
+              )}
+            >
+              <input {...getInputProps()} />
+              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                {isDragActive ? 'Suelta el archivo aquí' : 'Arrastra un archivo o haz clic para seleccionar'}
+              </p>
+              <p className="text-sm text-gray-600">
+                Formato requerido: {selectedType === 'extraction_data' ? 'JSON' : 'YAML'}
+              </p>
             </div>
-
-            {/* Upload Progress */}
-            {isUploading && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Subiendo archivo...</span>
-                  <span className="text-sm text-gray-600">{uploadProgress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Upload Result */}
-            {uploadResult && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          ) : (
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                  <FileText className="w-8 h-8 text-primary-600 mr-3" />
                   <div>
-                    <p className="text-sm font-medium text-green-800">
-                      Archivo procesado exitosamente
-                    </p>
-                    <p className="text-sm text-green-700">
-                      {uploadResult.records_processed} registros procesados
+                    <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-600">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={removeFile}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                  disabled={isUploading}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Upload Button */}
-        {selectedFile && !uploadResult && (
-          <div className="mt-4">
-            <button
-              onClick={handleUpload}
-              disabled={isUploading || (selectedType === 'extraction_data' && !formData.publication)}
-              className="btn btn-primary w-full"
-            >
-              {isUploading ? (
-                <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  Subiendo archivo...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 mr-2" />
-                  Subir archivo
-                </>
+              {/* Upload Progress */}
+              {isUploading && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Subiendo archivo...</span>
+                    <span className="text-sm text-gray-600">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
               )}
-            </button>
-          </div>
-        )}
-      </div>
+
+              {/* Upload Result */}
+              {uploadResult && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Archivo procesado exitosamente
+                      </p>
+                      <p className="text-sm text-green-700">
+                        {uploadResult.records_processed} registros procesados
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Upload Button */}
+          {selectedFile && !uploadResult && (
+            <div className="mt-4">
+              <button
+                onClick={handleUpload}
+                disabled={isUploading || (selectedType === 'extraction_data' && !formData.publication)}
+                className="btn btn-primary w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Subiendo archivo...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5 mr-2" />
+                    Subir archivo
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="card">
+          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <Layers className="w-5 h-5 mr-2" />
+            Carga Masiva de Archivos
+          </h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Sube múltiples archivos JSON simultáneamente. El sistema procesará hasta 500+ archivos 
+            con procesamiento en paralelo y monitoreo en tiempo real.
+          </p>
+          
+          <BulkFileUpload
+            ingestionType={selectedType}
+            publication={selectedType === 'extraction_data' ? formData.publication : undefined}
+            entityName={selectedType === 'known_entities' ? formData.entityName : undefined}
+            maxConcurrentUploads={5}
+            maxRetries={3}
+            onUploadComplete={handleBulkUploadComplete}
+            onFileProcessed={handleFileProcessed}
+          />
+        </div>
+      )}
 
       {/* Information */}
       <div className="card">
@@ -404,6 +499,15 @@ const IngestionView: React.FC = () => {
               Los archivos se almacenan temporalmente y se eliminan después del procesamiento.
             </p>
           </div>
+          {uploadMode === 'bulk' && (
+            <div className="flex items-start">
+              <Layers className="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" />
+              <p>
+                <strong>Carga Masiva:</strong> Procesa hasta 5 archivos simultáneamente con reintentos automáticos. 
+                Puedes pausar, reanudar y monitorear el progreso en tiempo real.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

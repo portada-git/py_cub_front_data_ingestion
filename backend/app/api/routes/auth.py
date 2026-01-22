@@ -137,7 +137,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             "role": payload.get("role"),
             "permissions": payload.get("permissions", []),
             "full_name": payload.get("full_name"),
-            "email": payload.get("email")
+            "email": payload.get("email"),
+            "is_active": True  # If token is valid, user is active
         }
         
     except HTTPException:

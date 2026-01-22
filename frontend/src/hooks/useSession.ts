@@ -17,13 +17,14 @@ export const useSession = (options: UseSessionOptions = {}) => {
   const {
     refreshThreshold = 5,
     warningThreshold = 2,
-    checkInterval = 1
+    checkInterval = 5 // Increased to 5 minutes to reduce API calls
   } = options;
 
-  const { user, isAuthenticated, logout, checkAuthStatus } = useAuth();
+  const { user, isAuthenticated, logout, checkAuthStatus, validateTokenWithServer } = useAuth();
   const { addNotification } = useNotificationStore();
   const intervalRef = useRef<number | null>(null);
   const warningShownRef = useRef(false);
+  const lastCheckRef = useRef<number>(0);
 
   const getTokenExpiryTime = useCallback(() => {
     if (!user?.access_token) return null;
@@ -70,10 +71,17 @@ export const useSession = (options: UseSessionOptions = {}) => {
   const checkSession = useCallback(async () => {
     if (!isAuthenticated) return;
 
+    // Prevent too frequent checks
+    const now = Date.now();
+    if (now - lastCheckRef.current < 60000) { // Minimum 1 minute between checks
+      return;
+    }
+    lastCheckRef.current = now;
+
     const minutesLeft = getMinutesUntilExpiry();
     
     if (minutesLeft === null) {
-      // Can't determine expiry, check with backend
+      // Can't determine expiry, do a simple token check without API call
       const isValid = await checkAuthStatus();
       if (!isValid) {
         await handleSessionExpiry();
@@ -88,9 +96,9 @@ export const useSession = (options: UseSessionOptions = {}) => {
       // Show warning
       showExpiryWarning();
     } else if (minutesLeft <= refreshThreshold) {
-      // Try to refresh token (if backend supports it)
+      // Only validate with server if we're close to expiry and haven't checked recently
       try {
-        const isValid = await checkAuthStatus();
+        const isValid = await validateTokenWithServer();
         if (!isValid) {
           await handleSessionExpiry();
         } else {
@@ -99,13 +107,14 @@ export const useSession = (options: UseSessionOptions = {}) => {
         }
       } catch (error) {
         console.error('Session refresh failed:', error);
-        await handleSessionExpiry();
+        // Don't logout on network errors, just log the error
       }
     }
   }, [
     isAuthenticated,
     getMinutesUntilExpiry,
     checkAuthStatus,
+    validateTokenWithServer,
     handleSessionExpiry,
     showExpiryWarning,
     refreshThreshold,
@@ -120,22 +129,26 @@ export const useSession = (options: UseSessionOptions = {}) => {
         intervalRef.current = null;
       }
       warningShownRef.current = false;
+      lastCheckRef.current = 0;
       return;
     }
 
-    // Initial check
-    checkSession();
+    // Initial check after a delay to avoid immediate API call
+    const initialTimeout = setTimeout(() => {
+      checkSession();
+    }, 5000); // 5 second delay
 
     // Set up periodic checks
     intervalRef.current = setInterval(checkSession, checkInterval * 60 * 1000);
 
     return () => {
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [isAuthenticated, checkSession, checkInterval]);
+  }, [isAuthenticated, checkInterval]); // Removed checkSession from dependencies to prevent recreation
 
   // Cleanup on unmount
   useEffect(() => {

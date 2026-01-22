@@ -28,8 +28,11 @@ interface IngestionState {
 interface UIState {
   sidebarOpen: boolean;
   currentView: string;
+  expandedMenus: string[];
   setSidebarOpen: (open: boolean) => void;
   setCurrentView: (view: string) => void;
+  toggleMenuExpansion: (menuName: string) => void;
+  setExpandedMenus: (menus: string[]) => void;
 }
 
 interface NotificationState {
@@ -127,11 +130,18 @@ export const useIngestionStore = create<IngestionState>((set) => ({
 
 // UI store
 export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: false, // Start closed on mobile
   currentView: 'dashboard',
+  expandedMenus: [],
   
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setCurrentView: (view) => set({ currentView: view }),
+  toggleMenuExpansion: (menuName) => set((state) => ({
+    expandedMenus: state.expandedMenus.includes(menuName)
+      ? state.expandedMenus.filter(name => name !== menuName)
+      : [...state.expandedMenus, menuName]
+  })),
+  setExpandedMenus: (menus) => set({ expandedMenus: menus }),
 }));
 
 // Notification store
