@@ -10,8 +10,7 @@ import {
   Clock, 
   Upload, 
   RefreshCw,
-  XCircle,
-  Info
+  XCircle
 } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 import clsx from 'clsx';
