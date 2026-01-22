@@ -285,19 +285,19 @@ This implementation plan breaks down the PortAda Data Ingestion and Analysis Sys
     - _Requirements: 1.1, 1.2, 1.4_
 
 - [-] 15. Frontend File Upload Components
-  - [-] 15.1 Create file upload component
+  - [x] 15.1 Create file upload component
     - Implement drag-and-drop file upload
     - Add file format validation (client-side)
     - Create upload progress indication
     - _Requirements: 2.1, 3.1, 16.1, 16.2_
 
-  - [ ] 15.2 Implement ingestion type selection
+  - [x] 15.2 Implement ingestion type selection
     - Create separate UI controls for extraction data and known entities
     - Add process isolation UI logic
     - Implement publication selection for extraction data
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 15.3 Add upload status and feedback
+  - [-] 15.3 Add upload status and feedback
     - Create success/error message display
     - Implement real-time status updates
     - Add retry functionality for failed uploads
