@@ -1,0 +1,23 @@
+{
+  "test_entries": [
+    {
+      "id": 1,
+      "title": "Test Entry 1",
+      "date": "2024-01-01",
+      "publication": "db",
+      "content": "This is a test entry for bulk upload testing"
+    },
+    {
+      "id": 2,
+      "title": "Test Entry 2", 
+      "date": "2024-01-02",
+      "publication": "db",
+      "content": "Another test entry for bulk upload testing"
+    }
+  ],
+  "metadata": {
+    "source": "test",
+    "created_at": "2024-01-22T10:00:00Z",
+    "total_records": 2
+  }
+}

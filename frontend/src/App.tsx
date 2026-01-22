@@ -16,6 +16,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NotificationContainer from './components/NotificationContainer';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Initialize i18n
+import './i18n';
+import './styles/upload.css';
+
 // Protected Route component
 const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (

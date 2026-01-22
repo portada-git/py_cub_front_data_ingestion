@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -18,6 +19,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useUIStore } from '../store/useStore';
 import MobileMenu from './MobileMenu';
+import LanguageSelector from './LanguageSelector';
 import clsx from 'clsx';
 
 interface LayoutProps {
@@ -25,6 +27,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { sidebarOpen, setSidebarOpen, expandedMenus, toggleMenuExpansion } = useUIStore();
   const location = useLocation();
@@ -47,28 +50,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [sidebarOpen, setSidebarOpen]);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
+    { name: t('navigation.ingestion'), href: '/ingestion', icon: Upload },
     { 
-      name: 'Ingestión', 
-      href: '/ingestion', 
-      icon: Upload,
-      children: [
-        { name: 'Carga de datos de extracción', href: '/ingestion?type=extraction' },
-        { name: 'Carga de entidades conocidas', href: '/ingestion?type=entities' },
-      ]
-    },
-    { 
-      name: 'Análisis', 
+      name: t('navigation.analysis'), 
       href: '/analysis', 
       icon: BarChart3,
       children: [
-        { name: 'Ficheros de ingestión por procesar', href: '/analysis/pending-files' },
-        { name: 'Fechas faltantes', href: '/analysis/missing-dates' },
-        { name: 'Duplicados', href: '/analysis/duplicates' },
-        { name: 'Cantidad de entradas diarias', href: '/analysis/daily-entries' },
-        { name: 'Entidades conocidas subidas', href: '/analysis/known-entities' },
-        { name: 'Metadatos de almacenaje', href: '/analysis/storage-metadata' },
-        { name: 'Metadatos de procesos ejecutados', href: '/analysis/process-metadata' },
+        { name: t('navigation.pendingFiles'), href: '/analysis/pending-files' },
+        { name: t('navigation.missingDates'), href: '/analysis/missing-dates' },
+        { name: t('navigation.duplicates'), href: '/analysis/duplicates' },
+        { name: t('navigation.dailyEntries'), href: '/analysis/daily-entries' },
+        { name: t('navigation.knownEntities'), href: '/analysis/known-entities' },
+        { name: t('navigation.storageMetadata'), href: '/analysis/storage-metadata' },
+        { name: t('navigation.processMetadata'), href: '/analysis/process-metadata' },
       ]
     },
   ];
@@ -95,14 +90,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div 
                   className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
                   role="img"
-                  aria-label="Logo de PortAda"
+                  aria-label={t('navigation.logoAlt')}
                 >
                   <Database className="w-5 h-5 text-white" aria-hidden="true" />
                 </div>
               </div>
               <div className="ml-3">
-                <h1 className="text-lg font-semibold text-gray-900">PortAda</h1>
-                <p className="text-xs text-gray-500">Sistema de Ingestión</p>
+                <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
+                <p className="text-xs text-gray-500">{t('app.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -111,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <nav 
             className="flex-1 px-4 py-4 space-y-2 overflow-y-auto"
             role="navigation"
-            aria-label="Navegación principal"
+            aria-label={t('navigation.mainNavigation')}
           >
             {navigation.map((item) => {
               const isActive = location.pathname.startsWith(item.href);
@@ -158,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       id={`submenu-${item.name}`}
                       className="ml-8 mt-2 space-y-1"
                       role="menu"
-                      aria-label={`Submenú de ${item.name}`}
+                      aria-label={t('navigation.submenu', { name: item.name })}
                     >
                       {item.children.map((child) => {
                         const childIsActive = location.pathname === child.href.split('?')[0] || 
@@ -186,14 +181,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             })}
           </nav>
 
-          {/* User info and logout */}
-          <div className="border-t border-gray-200 p-4">
+          {/* User info, language selector and logout */}
+          <div className="border-t border-gray-200 p-4 space-y-3">
+            {/* Language Selector */}
+            <div className="flex justify-center">
+              <LanguageSelector />
+            </div>
+            
             <div className="flex items-center mb-3">
               <div className="flex-shrink-0">
                 <div 
                   className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"
                   role="img"
-                  aria-label={`Avatar de ${user?.full_name || user?.username}`}
+                  aria-label={t('navigation.userAvatar', { name: user?.full_name || user?.username })}
                 >
                   <span className="text-sm font-medium text-gray-700">
                     {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
@@ -212,10 +212,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label="Cerrar sesión"
+              aria-label={t('navigation.logout')}
             >
               <LogOut className="w-4 h-4 mr-3" aria-hidden="true" />
-              Cerrar sesión
+              {t('navigation.logout')}
             </button>
           </div>
         </div>
@@ -229,7 +229,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-lg text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label="Abrir menú de navegación"
+              aria-label={t('navigation.openMenu')}
             >
               <Menu className="w-6 h-6" aria-hidden="true" />
             </button>
@@ -237,11 +237,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div 
                 className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center mr-2"
                 role="img"
-                aria-label="Logo de PortAda"
+                aria-label={t('navigation.logoAlt')}
               >
                 <Database className="w-4 h-4 text-white" aria-hidden="true" />
               </div>
-              <h1 className="text-lg font-semibold text-gray-900">PortAda</h1>
+              <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
             </div>
             <div className="w-10" /> {/* Spacer */}
           </div>
@@ -251,7 +251,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <main 
           className="flex-1 overflow-y-auto"
           role="main"
-          aria-label="Contenido principal"
+          aria-label={t('navigation.mainContent')}
         >
           <div className="p-4 sm:p-6 lg:p-8">
             {children}

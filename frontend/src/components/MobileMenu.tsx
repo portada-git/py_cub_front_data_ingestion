@@ -4,10 +4,12 @@
  */
 
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { X, Home, Upload, BarChart3, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUIStore } from '../store/useStore';
+import LanguageSelector from './LanguageSelector';
 import clsx from 'clsx';
 
 interface MobileMenuProps {
@@ -16,6 +18,7 @@ interface MobileMenuProps {
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { expandedMenus, toggleMenuExpansion } = useUIStore();
   const location = useLocation();
@@ -63,28 +66,20 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
+    { name: t('navigation.ingestion'), href: '/ingestion', icon: Upload },
     { 
-      name: 'Ingestión', 
-      href: '/ingestion', 
-      icon: Upload,
-      children: [
-        { name: 'Carga de datos de extracción', href: '/ingestion?type=extraction' },
-        { name: 'Carga de entidades conocidas', href: '/ingestion?type=entities' },
-      ]
-    },
-    { 
-      name: 'Análisis', 
+      name: t('navigation.analysis'), 
       href: '/analysis', 
       icon: BarChart3,
       children: [
-        { name: 'Ficheros de ingestión por procesar', href: '/analysis/pending-files' },
-        { name: 'Fechas faltantes', href: '/analysis/missing-dates' },
-        { name: 'Duplicados', href: '/analysis/duplicates' },
-        { name: 'Cantidad de entradas diarias', href: '/analysis/daily-entries' },
-        { name: 'Entidades conocidas subidas', href: '/analysis/known-entities' },
-        { name: 'Metadatos de almacenaje', href: '/analysis/storage-metadata' },
-        { name: 'Metadatos de procesos ejecutados', href: '/analysis/process-metadata' },
+        { name: t('navigation.pendingFiles'), href: '/analysis/pending-files' },
+        { name: t('navigation.missingDates'), href: '/analysis/missing-dates' },
+        { name: t('navigation.duplicates'), href: '/analysis/duplicates' },
+        { name: t('navigation.dailyEntries'), href: '/analysis/daily-entries' },
+        { name: t('navigation.knownEntities'), href: '/analysis/known-entities' },
+        { name: t('navigation.storageMetadata'), href: '/analysis/storage-metadata' },
+        { name: t('navigation.processMetadata'), href: '/analysis/process-metadata' },
       ]
     },
   ];
@@ -124,19 +119,19 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
               <div 
                 className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"
                 role="img"
-                aria-label="Logo de PortAda"
+                aria-label={t('navigation.logoAlt')}
               >
                 <span className="text-white font-bold text-sm">P</span>
               </div>
               <div className="ml-3">
-                <h1 className="text-lg font-semibold text-gray-900">PortAda</h1>
+                <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
               </div>
             </div>
             <button
               ref={closeButtonRef}
               onClick={onClose}
               className="p-1 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              aria-label="Cerrar menú"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5" aria-hidden="true" />
             </button>
@@ -227,8 +222,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
             })}
           </nav>
 
-          {/* User info and logout */}
-          <div className="border-t border-gray-200 p-4">
+          {/* User info, language selector and logout */}
+          <div className="border-t border-gray-200 p-4 space-y-3">
+            {/* Language Selector */}
+            <LanguageSelector />
+            
             <div className="flex items-center mb-3">
               <div 
                 className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center"
@@ -251,10 +249,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              aria-label="Cerrar sesión"
+              aria-label={t('navigation.logout')}
             >
               <LogOut className="w-4 h-4 mr-3" aria-hidden="true" />
-              Cerrar sesión
+              {t('navigation.logout')}
             </button>
           </div>
         </div>

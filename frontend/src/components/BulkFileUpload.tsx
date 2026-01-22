@@ -1,9 +1,10 @@
 /**
- * Bulk File Upload Component
- * Handles massive file uploads with batch processing, queue management, and real-time monitoring
+ * Unified File Upload Component
+ * Handles both single and multiple file uploads with batch processing, queue management, and real-time monitoring
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { 
   FileText, 
@@ -37,7 +38,7 @@ interface FileUploadItem {
   uploadEndTime?: number;
 }
 
-interface BulkUploadStats {
+interface UnifiedUploadStats {
   total: number;
   pending: number;
   uploading: number;
@@ -49,17 +50,17 @@ interface BulkUploadStats {
   estimatedTimeRemaining: number;
 }
 
-interface BulkFileUploadProps {
+interface UnifiedFileUploadProps {
   ingestionType: 'extraction_data' | 'known_entities';
   publication?: string;
   entityName?: string;
   maxConcurrentUploads?: number;
   maxRetries?: number;
-  onUploadComplete?: (stats: BulkUploadStats) => void;
+  onUploadComplete?: (stats: UnifiedUploadStats) => void;
   onFileProcessed?: (file: FileUploadItem) => void;
 }
 
-const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
+const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   ingestionType,
   publication,
   entityName,
@@ -68,10 +69,11 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
   onUploadComplete,
   onFileProcessed
 }) => {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<FileUploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [stats, setStats] = useState<BulkUploadStats>({
+  const [stats, setStats] = useState<UnifiedUploadStats>({
     total: 0,
     pending: 0,
     uploading: 0,
@@ -89,7 +91,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
   // Calculate stats whenever files change
   useEffect(() => {
     // Calculate stats whenever files change
-    const newStats: BulkUploadStats = {
+    const newStats: UnifiedUploadStats = {
       total: files.length,
       pending: files.filter(f => f.status === 'pending').length,
       uploading: files.filter(f => f.status === 'uploading').length,
@@ -115,25 +117,27 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
     }
 
     setStats(newStats);
-    
-    // Call onUploadComplete when all files are processed
-    if (newStats.total > 0 && (newStats.success + newStats.error) === newStats.total) {
-      onUploadComplete?.(newStats);
+  }, [files, maxConcurrentUploads]);
+
+  // Separate effect for completion callback to avoid infinite loops
+  useEffect(() => {
+    if (stats.total > 0 && (stats.success + stats.error) === stats.total) {
+      onUploadComplete?.(stats);
     }
-  }, [files, maxConcurrentUploads, onUploadComplete]);
+  }, [stats.success, stats.error, stats.total, onUploadComplete]);
 
   const generateFileId = () => Math.random().toString(36).substr(2, 9);
 
   const validateFile = (file: File): string | null => {
     const maxSize = 50 * 1024 * 1024; // 50MB per file
     if (file.size > maxSize) {
-      return `Archivo demasiado grande: ${file.name}`;
+      return t('notifications.fileTooLarge', { filename: file.name });
     }
 
     const validExtensions = ['.json'];
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!validExtensions.includes(extension)) {
-      return `Formato no válido: ${file.name}`;
+      return t('notifications.invalidFormat', { filename: file.name });
     }
 
     return null;
@@ -153,7 +157,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
       // Check for duplicates
       const isDuplicate = files.some(f => f.file.name === file.name && f.file.size === file.size);
       if (isDuplicate) {
-        errors.push(`Archivo duplicado: ${file.name}`);
+        errors.push(t('notifications.duplicateFile', { filename: file.name }));
         return;
       }
 
@@ -167,7 +171,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
     });
 
     if (errors.length > 0) {
-      console.warn('Archivos rechazados:', errors);
+      console.warn(t('notifications.filesRejected'), errors);
     }
 
     setFiles(prev => [...prev, ...newFiles]);
@@ -225,7 +229,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
         throw new Error('Upload failed');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorMessage = error instanceof Error ? error.message : t('notifications.unknownError');
       
       setFiles(prev => prev.map(f => 
         f.id === fileItem.id 
@@ -267,6 +271,12 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
   }, [isProcessing, isPaused, files, processQueue]);
 
   const startProcessing = () => {
+    // Validate required fields before starting
+    if (ingestionType === 'extraction_data' && !publication?.trim()) {
+      console.error('Publication is required for extraction data ingestion');
+      return;
+    }
+    
     setIsProcessing(true);
     setIsPaused(false);
   };
@@ -342,10 +352,10 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
       <div
         {...getRootProps()}
         className={clsx(
-          'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200',
+          'upload-zone border-2 border-dashed rounded-xl p-8 text-center cursor-pointer',
           {
-            'border-blue-400 bg-blue-50': isDragActive,
-            'border-gray-300 hover:border-gray-400 hover:bg-gray-50': !isDragActive && !isProcessing,
+            'drag-active': isDragActive,
+            'border-gray-300': !isDragActive && !isProcessing,
             'border-gray-200 bg-gray-100 cursor-not-allowed': isProcessing && !isPaused
           }
         )}
@@ -357,17 +367,24 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
         )} />
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           {isDragActive 
-            ? 'Suelta los archivos aquí' 
-            : 'Carga Masiva de Archivos JSON'
+            ? t('ingestion.dragFilesActive')
+            : t('ingestion.fileUpload')
           }
         </h3>
         <p className="text-gray-600 mb-4">
-          Arrastra múltiples archivos JSON o haz clic para seleccionar
+          {t('ingestion.dragFiles')}
         </p>
+        {ingestionType === 'extraction_data' && !publication?.trim() && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              {t('ingestion.publicationRequired')}
+            </p>
+          </div>
+        )}
         <div className="flex justify-center space-x-6 text-sm text-gray-500">
-          <span>• Hasta 500+ archivos</span>
-          <span>• Máximo 50MB por archivo</span>
-          <span>• Procesamiento en paralelo</span>
+          <span>• {t('ingestion.multipleFiles')}</span>
+          <span>• {t('ingestion.maxFileSize')}</span>
+          <span>• {t('ingestion.parallelProcessing')}</span>
         </div>
       </div>
 
@@ -377,17 +394,17 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
           <div className="card-header-dark">
             <h3 className="text-lg font-semibold text-white flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              Estadísticas de Procesamiento
+              {t('ingestion.statistics')}
             </h3>
             <div className="flex space-x-2">
               {!isProcessing ? (
                 <button
                   onClick={startProcessing}
-                  disabled={stats.pending === 0}
+                  disabled={stats.pending === 0 || (ingestionType === 'extraction_data' && !publication?.trim())}
                   className="btn btn-success"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Iniciar Procesamiento
+                  {t('ingestion.startProcessing')}
                 </button>
               ) : isPaused ? (
                 <button
@@ -395,7 +412,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                   className="btn btn-primary"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Reanudar
+                  {t('ingestion.resumeProcessing')}
                 </button>
               ) : (
                 <button
@@ -403,7 +420,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                   className="btn btn-warning"
                 >
                   <Pause className="w-4 h-4 mr-2" />
-                  Pausar
+                  {t('ingestion.pauseProcessing')}
                 </button>
               )}
               
@@ -413,7 +430,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                   className="btn btn-warning"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  Reintentar Errores
+                  {t('ingestion.retryErrors')}
                 </button>
               )}
               
@@ -422,7 +439,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                 className="btn btn-danger"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Limpiar Todo
+                {t('ingestion.clearAll')}
               </button>
             </div>
           </div>
@@ -431,34 +448,34 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <div className="stat-card stat-card-primary">
               <div className="stat-number stat-number-primary">{stats.total}</div>
-              <div className="stat-label text-slate-400">Total</div>
+              <div className="stat-label text-slate-400">{t('ingestion.total')}</div>
             </div>
             <div className="stat-card stat-card-warning">
               <div className="stat-number stat-number-warning">{stats.pending}</div>
-              <div className="stat-label text-slate-400">Pendientes</div>
+              <div className="stat-label text-slate-400">{t('ingestion.pending')}</div>
             </div>
             <div className="stat-card stat-card-info">
               <div className="stat-number stat-number-info">{stats.uploading}</div>
-              <div className="stat-label text-slate-400">Subiendo</div>
+              <div className="stat-label text-slate-400">{t('ingestion.uploading_status')}</div>
             </div>
             <div className="stat-card stat-card-success">
               <div className="stat-number stat-number-success">{stats.success}</div>
-              <div className="stat-label text-slate-400">Exitosos</div>
+              <div className="stat-label text-slate-400">{t('ingestion.success')}</div>
             </div>
             <div className="stat-card stat-card-error">
               <div className="stat-number stat-number-error">{stats.error}</div>
-              <div className="stat-label text-slate-400">Errores</div>
+              <div className="stat-label text-slate-400">{t('ingestion.errors')}</div>
             </div>
             <div className="stat-card stat-card-info">
               <div className="stat-number stat-number-info">{stats.totalRecordsProcessed.toLocaleString()}</div>
-              <div className="stat-label text-slate-400">Registros</div>
+              <div className="stat-label text-slate-400">{t('ingestion.records')}</div>
             </div>
           </div>
 
           {/* Progress Bar */}
           <div className="mb-4">
             <div className="flex justify-between text-sm text-slate-400 mb-2">
-              <span>Progreso General</span>
+              <span>{t('ingestion.generalProgress')}</span>
               <span>{Math.round((stats.success / stats.total) * 100)}%</span>
             </div>
             <div className="progress-bar bg-slate-800">
@@ -474,12 +491,12 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
             <div className="flex justify-between text-sm text-slate-400">
               <span className="flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                Tiempo promedio: {formatTime(stats.averageUploadTime)}
+                {t('ingestion.averageTime')}: {formatTime(stats.averageUploadTime)}
               </span>
               {stats.estimatedTimeRemaining > 0 && (
                 <span className="flex items-center">
                   <Zap className="w-4 h-4 mr-1" />
-                  Tiempo estimado restante: {formatTime(stats.estimatedTimeRemaining)}
+                  {t('ingestion.estimatedRemaining')}: {formatTime(stats.estimatedTimeRemaining)}
                 </span>
               )}
             </div>
@@ -492,7 +509,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
         <div className="table-container">
           <div className="table-header">
             <h3 className="font-semibold text-gray-900">
-              Lista de Archivos ({files.length})
+              {t('ingestion.filesList')} ({files.length})
             </h3>
           </div>
           
@@ -531,14 +548,14 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                             'bg-yellow-100 text-yellow-600': fileItem.status === 'paused'
                           }
                         )}>
-                          {fileItem.status === 'pending' && 'Pendiente'}
-                          {fileItem.status === 'uploading' && 'Subiendo'}
-                          {fileItem.status === 'success' && 'Exitoso'}
-                          {fileItem.status === 'error' && 'Error'}
+                          {fileItem.status === 'pending' && t('ingestion.pending_status')}
+                          {fileItem.status === 'uploading' && t('ingestion.uploading_status')}
+                          {fileItem.status === 'success' && t('ingestion.success_status')}
+                          {fileItem.status === 'error' && t('ingestion.error_status')}
                           {fileItem.status === 'paused' && 'Pausado'}
                         </span>
                         {fileItem.result?.records_processed && (
-                          <span>{fileItem.result.records_processed} registros</span>
+                          <span>{fileItem.result.records_processed} {t('ingestion.records').toLowerCase()}</span>
                         )}
                       </div>
                       
@@ -575,7 +592,7 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
                     <button
                       onClick={() => removeFile(fileItem.id)}
                       className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Eliminar archivo"
+                      title={t('ingestion.removeFile')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -590,4 +607,4 @@ const BulkFileUpload: React.FC<BulkFileUploadProps> = ({
   );
 };
 
-export default BulkFileUpload;
+export default UnifiedFileUpload;
