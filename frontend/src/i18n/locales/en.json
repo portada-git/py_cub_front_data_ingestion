@@ -198,6 +198,7 @@
     "selectFile": "Please select a file to upload",
     "publicationRequired": "Publication required",
     "selectPublicationForExtraction": "Please select a publication for extraction data",
+    "validationError": "Validation error occurred",
     "uploadSuccess": "File uploaded successfully",
     "recordsProcessed": "{{count}} records processed",
     "uploadError": "Error uploading file",

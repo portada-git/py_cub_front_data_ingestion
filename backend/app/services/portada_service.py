@@ -166,9 +166,12 @@ class PortAdaService:
         """
         Ingest extraction data from JSON file
         
+        The PortAda library automatically extracts publication information from the JSON data,
+        so the newspaper parameter is optional and mainly used for organization.
+        
         Args:
             file_path: Path to the JSON file
-            newspaper: Newspaper identifier (e.g., "db", "dm", "sm")
+            newspaper: Optional newspaper identifier for organization
             data_path_delta_lake: Destination path in delta lake
             
         Returns:
@@ -182,22 +185,33 @@ class PortAdaService:
             async with aiofiles.open(file_path, 'r') as f:
                 content = await f.read()
                 data = json.loads(content)
-                record_count = len(data) if isinstance(data, list) else 1
+                
+                # Handle different JSON structures
+                if isinstance(data, list):
+                    record_count = len(data)
+                elif isinstance(data, dict):
+                    # Look for common array keys in newspaper data
+                    for key in ['entries', 'news', 'articles', 'data', 'items']:
+                        if key in data and isinstance(data[key], list):
+                            record_count = len(data[key])
+                            break
+                    else:
+                        record_count = 1
+                else:
+                    record_count = 1
             
-            # Build destination path with newspaper if provided
-            if newspaper:
-                destination_path = f"{data_path_delta_lake}/{newspaper}"
-            else:
-                destination_path = data_path_delta_lake
+            # Use the data_path_delta_lake directly - the library handles publication organization
+            destination_path = data_path_delta_lake
             
-            # Perform ingestion using PortAda library
-            layer_news.ingest(destination_path, local_path=file_path)
+            # Perform ingestion using PortAda library with user information
+            # The library will automatically organize by publication_name, date, and edition
+            layer_news.ingest(destination_path, local_path=file_path, user="api_user")
             
             self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
             return {
                 "success": True,
                 "records_processed": record_count,
-                "message": f"Successfully ingested {record_count} records to {destination_path}"
+                "message": f"Successfully ingested {record_count} records. Data organized automatically by publication and date."
             }
             
         except json.JSONDecodeError as e:

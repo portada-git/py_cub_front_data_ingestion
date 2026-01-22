@@ -4,6 +4,7 @@ Data ingestion API routes
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from typing import Optional
 import logging
 import uuid
@@ -21,7 +22,7 @@ from app.models.ingestion import (
 from app.services.portada_service import portada_service
 from app.services.file_service import file_service
 from app.services.task_service import task_service, TaskType, TaskPriority, TaskInfo
-from app.core.exceptions import PortAdaBaseException, get_user_friendly_message
+from app.core.exceptions import PortAdaBaseException, get_user_friendly_message, PortAdaValidationError
 from app.api.routes.auth import get_current_user
 from app.core.config import settings
 
@@ -101,13 +102,85 @@ async def upload_data(
     Supports both extraction data (JSON) and known entities (YAML) ingestion.
     """
     try:
-        # Create ingestion request
-        ingestion_request = IngestionRequest(
-            ingestion_type=ingestion_type,
-            publication=publication,
-            entity_name=entity_name,
-            data_path_delta_lake=data_path_delta_lake
-        )
+        # Pre-validation checks for better error messages
+        if ingestion_type == IngestionType.EXTRACTION_DATA:
+            if not publication or not publication.strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "Publication is required for extraction data ingestion",
+                        "errors": ["Please select a publication before uploading extraction data files"],
+                        "error_code": "PUBLICATION_REQUIRED",
+                        "field_errors": {"publication": "This field is required for extraction data"}
+                    }
+                )
+        
+        if ingestion_type == IngestionType.KNOWN_ENTITIES:
+            if not entity_name or not entity_name.strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "Entity name is required for known entities ingestion",
+                        "errors": ["Please provide an entity name for known entities ingestion"],
+                        "error_code": "ENTITY_NAME_REQUIRED",
+                        "field_errors": {"entity_name": "This field is required for known entities"}
+                    }
+                )
+        
+        # Validate file is provided
+        if not file or not file.filename:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "File is required",
+                    "errors": ["Please select a file to upload"],
+                    "error_code": "FILE_REQUIRED",
+                    "field_errors": {"file": "A file must be selected"}
+                }
+            )
+        logger.info(f"Upload request from user {current_user['username']}: {ingestion_type.value} ingestion for file {file.filename} (size: {file.size} bytes)")
+        
+        # Create ingestion request with enhanced validation error handling
+        try:
+            ingestion_request = IngestionRequest(
+                ingestion_type=ingestion_type,
+                publication=publication,
+                entity_name=entity_name,
+                data_path_delta_lake=data_path_delta_lake
+            )
+        except ValidationError as e:
+            # Extract validation error details for user-friendly messages
+            validation_errors = []
+            for error in e.errors():
+                field = error.get('loc', ['unknown'])[-1]  # Get the field name
+                error_type = error.get('type', 'unknown')
+                error_msg = error.get('msg', 'Validation failed')
+                
+                if field == 'publication' and error_type == 'value_error':
+                    validation_errors.append("Publication is required when uploading extraction data")
+                elif field == 'publication' and 'empty' in error_msg.lower():
+                    validation_errors.append("Publication cannot be empty")
+                elif field == 'publication' and not publication:
+                    validation_errors.append("Please select a publication for extraction data ingestion")
+                elif field == 'entity_name' and not entity_name:
+                    validation_errors.append("Entity name is required for known entities ingestion")
+                else:
+                    validation_errors.append(f"{field.replace('_', ' ').title()}: {error_msg}")
+            
+            logger.warning(f"Validation error for user {current_user['username']}: {validation_errors}")
+            
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Validation failed",
+                    "errors": validation_errors,
+                    "error_code": "VALIDATION_ERROR",
+                    "field_errors": {
+                        error.get('loc', ['unknown'])[-1]: error.get('msg', 'Validation failed')
+                        for error in e.errors()
+                    }
+                }
+            )
         
         # Determine expected file format
         if ingestion_type == IngestionType.EXTRACTION_DATA:
@@ -119,11 +192,32 @@ async def upload_data(
         file_validation = await validate_file(file, expected_format)
         
         if not file_validation.is_valid:
+            # Create more specific error messages based on validation errors
+            formatted_errors = []
+            for error in file_validation.validation_errors:
+                if "size" in error.lower():
+                    formatted_errors.append(f"File is too large. Maximum size allowed is 50MB, but {file.filename} is {file_validation.file_size / (1024*1024):.1f}MB")
+                elif "format" in error.lower() or "extension" in error.lower():
+                    expected_ext = ".json" if expected_format == FileFormat.JSON else ".yaml/.yml"
+                    formatted_errors.append(f"Invalid file format. Expected {expected_ext} file for {ingestion_type.value} ingestion")
+                elif "empty" in error.lower():
+                    formatted_errors.append(f"File {file.filename} appears to be empty")
+                elif "corrupt" in error.lower():
+                    formatted_errors.append(f"File {file.filename} appears to be corrupted or unreadable")
+                else:
+                    formatted_errors.append(error)
+            
             raise HTTPException(
                 status_code=400,
                 detail={
                     "message": "File validation failed",
-                    "errors": file_validation.validation_errors
+                    "errors": formatted_errors,
+                    "error_code": "FILE_VALIDATION_ERROR",
+                    "file_info": {
+                        "filename": file.filename,
+                        "size": file_validation.file_size,
+                        "expected_format": expected_format.value
+                    }
                 }
             )
         
@@ -158,12 +252,12 @@ async def upload_data(
             file_path
         )
         
-        logger.info(f"Created ingestion task {task_id} for user {current_user['username']}")
+        logger.info(f"Created ingestion task {task_id} for user {current_user['username']} - {ingestion_type.value} ingestion of {file.filename}")
         
         return IngestionResponse(
             task_id=task_id,
             status=IngestionStatus.PENDING,
-            message="File uploaded successfully, ingestion started",
+            message=f"File '{file.filename}' uploaded successfully. {ingestion_type.value.replace('_', ' ').title()} ingestion started.",
             records_processed=0,
             started_at=datetime.utcnow(),
             file_validation=file_validation
@@ -171,11 +265,25 @@ async def upload_data(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Error in upload endpoint: {e}")
+    except PortAdaBaseException as e:
+        logger.error(f"PortAda error in upload endpoint: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Internal server error: {str(e)}"
+            detail={
+                "message": get_user_friendly_message(e),
+                "error_code": e.error_code,
+                "details": e.details
+            }
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in upload endpoint: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "An unexpected error occurred while processing your upload",
+                "error_code": "INTERNAL_ERROR",
+                "details": {"error": str(e)}
+            }
         )
 
 

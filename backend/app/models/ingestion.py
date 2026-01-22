@@ -30,14 +30,13 @@ class IngestionRequest(BaseModel):
     
     @validator('publication')
     def validate_publication_for_extraction(cls, v, values):
-        """Validate publication is provided for extraction data"""
-        if values.get('ingestion_type') == IngestionType.EXTRACTION_DATA and not v:
-            raise ValueError("Publication is required for extraction data ingestion")
+        """Publication is optional - the library extracts it from the data automatically"""
+        # Publication is now optional as it's extracted from the JSON data
         return v
     
     @validator('publication')
     def validate_publication_format(cls, v):
-        """Validate publication format"""
+        """Validate publication format if provided"""
         if v and not v.strip():
             raise ValueError("Publication cannot be empty")
         return v.strip() if v else v

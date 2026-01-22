@@ -145,13 +145,23 @@ export class ApiErrorHandler {
   }
 
   private static formatValidationError(error: ApiError): string {
+    // Handle new structured error format from backend
+    if (error.details && error.details.errors && Array.isArray(error.details.errors)) {
+      return error.details.errors.join('. ');
+    }
+    
+    // Handle FastAPI validation errors format
     if (error.details && Array.isArray(error.details)) {
-      // FastAPI validation errors format
       const messages = error.details.map((detail: any) => {
         const field = detail.loc ? detail.loc.join('.') : 'field';
         return `${field}: ${detail.msg}`;
       });
       return messages.join(', ');
+    }
+    
+    // Handle simple error message
+    if (error.details && error.details.message) {
+      return error.details.message;
     }
     
     return error.message || 'Validation failed. Please check your input.';

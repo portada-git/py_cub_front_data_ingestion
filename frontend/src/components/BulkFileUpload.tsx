@@ -229,7 +229,17 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
         throw new Error('Upload failed');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t('notifications.unknownError');
+      let errorMessage = t('notifications.unknownError');
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Publication is required')) {
+          errorMessage = t('notifications.publicationRequired');
+        } else if (error.message.includes('validation error')) {
+          errorMessage = t('notifications.validationError');
+        } else {
+          errorMessage = error.message;
+        }
+      }
       
       setFiles(prev => prev.map(f => 
         f.id === fileItem.id 
@@ -271,12 +281,6 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   }, [isProcessing, isPaused, files, processQueue]);
 
   const startProcessing = () => {
-    // Validate required fields before starting
-    if (ingestionType === 'extraction_data' && !publication?.trim()) {
-      console.error('Publication is required for extraction data ingestion');
-      return;
-    }
-    
     setIsProcessing(true);
     setIsPaused(false);
   };
@@ -400,7 +404,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               {!isProcessing ? (
                 <button
                   onClick={startProcessing}
-                  disabled={stats.pending === 0 || (ingestionType === 'extraction_data' && !publication?.trim())}
+                  disabled={stats.pending === 0}
                   className="btn btn-success"
                 >
                   <Play className="w-4 h-4 mr-2" />
