@@ -262,7 +262,7 @@ This implementation plan breaks down the PortAda Data Ingestion and Analysis Sys
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Frontend Core Setup
-  - [-] 14.1 Initialize React application with TypeScript
+  - [ ] 14.1 Initialize React application with TypeScript
     - Set up React project with Create React App or Vite
     - Configure TypeScript and ESLint
     - Set up routing with React Router

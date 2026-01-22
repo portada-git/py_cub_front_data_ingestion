@@ -1,22 +1,13 @@
-import { StrictMode, useEffect } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.tsx";
-import { useStore } from "./store/useStore";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import App from './App.tsx'
+import './index.css'
 
-// Component to initialize auth check
-function AppWithAuthCheck() {
-  const { checkAuth } = useStore();
-  
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-  
-  return <App />;
-}
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <AppWithAuthCheck />
-  </StrictMode>
-);
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+)

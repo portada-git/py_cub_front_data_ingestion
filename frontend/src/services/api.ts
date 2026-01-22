@@ -1,5 +1,6 @@
 /**
  * API service for PortAda backend integration
+ * Modern implementation with proper error handling and TypeScript support
  */
 
 import { 

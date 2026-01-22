@@ -1,53 +1,82 @@
+/**
+ * Global state management using Zustand
+ * Modern implementation with TypeScript support and persistence
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserSession } from '../types';
+import { UserSession, IngestionResponse } from '../types';
 import { apiService } from '../services/api';
 
-type AuthStatus = 'authenticated' | 'unauthenticated' | 'loading';
-
-interface AppState {
-  authStatus: AuthStatus;
+interface AuthState {
   user: UserSession | null;
-  isProcessing: boolean;
-  
-  setAuthStatus: (status: AuthStatus) => void;
-  setUser: (user: UserSession | null) => void;
-  setIsProcessing: (isProcessing: boolean) => void;
+  isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => void;
+  setUser: (user: UserSession) => void;
 }
 
-export const useStore = create<AppState>()(
+interface IngestionState {
+  currentTask: IngestionResponse | null;
+  isUploading: boolean;
+  uploadProgress: number;
+  setCurrentTask: (task: IngestionResponse | null) => void;
+  setUploading: (uploading: boolean) => void;
+  setUploadProgress: (progress: number) => void;
+}
+
+interface UIState {
+  sidebarOpen: boolean;
+  currentView: string;
+  setSidebarOpen: (open: boolean) => void;
+  setCurrentView: (view: string) => void;
+}
+
+interface NotificationState {
+  notifications: Array<{
+    id: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    timestamp: Date;
+  }>;
+  addNotification: (notification: Omit<NotificationState['notifications'][0], 'id' | 'timestamp'>) => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
+}
+
+// Auth store with persistence
+export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      authStatus: 'loading',
       user: null,
-      isProcessing: false,
-
-      setAuthStatus: (status) => set({ authStatus: status }),
-      setUser: (user) => set({ user }),
-      setIsProcessing: (isProcessing) => set({ isProcessing }),
+      isAuthenticated: false,
       
       login: async (username: string, password: string) => {
         try {
-          set({ authStatus: 'loading' });
-          
           const response = await apiService.login({ username, password });
-          
-          const userSession: UserSession = {
+          const user: UserSession = {
             ...response.user_info,
             isAuthenticated: true,
             access_token: response.access_token,
             expires_in: response.expires_in,
           };
           
-          set({ 
-            authStatus: 'authenticated', 
-            user: userSession 
+          set({ user, isAuthenticated: true });
+          
+          // Add success notification
+          useNotificationStore.getState().addNotification({
+            type: 'success',
+            title: 'Inicio de sesión exitoso',
+            message: `Bienvenido, ${user.full_name}`,
           });
         } catch (error) {
-          set({ authStatus: 'unauthenticated', user: null });
+          // Add error notification
+          useNotificationStore.getState().addNotification({
+            type: 'error',
+            title: 'Error de autenticación',
+            message: error instanceof Error ? error.message : 'Error desconocido',
+          });
           throw error;
         }
       },
@@ -58,49 +87,80 @@ export const useStore = create<AppState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
-          set({ 
-            authStatus: 'unauthenticated', 
-            user: null 
+          set({ user: null, isAuthenticated: false });
+          
+          // Add info notification
+          useNotificationStore.getState().addNotification({
+            type: 'info',
+            title: 'Sesión cerrada',
+            message: 'Has cerrado sesión correctamente',
           });
         }
       },
       
-      checkAuth: () => {
-        const isAuthenticated = apiService.isAuthenticated();
-        if (isAuthenticated) {
-          // Verify token is still valid by making a request
-          apiService.getCurrentUser()
-            .then((userInfo) => {
-              const userSession: UserSession = {
-                ...userInfo,
-                isAuthenticated: true,
-                access_token: localStorage.getItem('access_token') || '',
-                expires_in: 0, // Will be refreshed on next login
-              };
-              set({ 
-                authStatus: 'authenticated', 
-                user: userSession 
-              });
-            })
-            .catch(() => {
-              // Token is invalid
-              apiService.clearToken();
-              set({ 
-                authStatus: 'unauthenticated', 
-                user: null 
-              });
-            });
-        } else {
-          set({ authStatus: 'unauthenticated' });
-        }
+      setUser: (user: UserSession) => {
+        set({ user, isAuthenticated: true });
       },
     }),
     {
-      name: 'portada-auth-storage',
-      partialize: (state) => ({ 
+      name: 'auth-storage',
+      partialize: (state) => ({
         user: state.user,
-        authStatus: state.authStatus === 'authenticated' ? 'authenticated' : 'unauthenticated'
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
 );
+
+// Ingestion store
+export const useIngestionStore = create<IngestionState>((set) => ({
+  currentTask: null,
+  isUploading: false,
+  uploadProgress: 0,
+  
+  setCurrentTask: (task) => set({ currentTask: task }),
+  setUploading: (uploading) => set({ isUploading: uploading }),
+  setUploadProgress: (progress) => set({ uploadProgress: progress }),
+}));
+
+// UI store
+export const useUIStore = create<UIState>((set) => ({
+  sidebarOpen: true,
+  currentView: 'dashboard',
+  
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  setCurrentView: (view) => set({ currentView: view }),
+}));
+
+// Notification store
+export const useNotificationStore = create<NotificationState>((set, get) => ({
+  notifications: [],
+  
+  addNotification: (notification) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newNotification = {
+      ...notification,
+      id,
+      timestamp: new Date(),
+    };
+    
+    set((state) => ({
+      notifications: [...state.notifications, newNotification],
+    }));
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      get().removeNotification(id);
+    }, 5000);
+  },
+  
+  removeNotification: (id) => {
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    }));
+  },
+  
+  clearNotifications: () => {
+    set({ notifications: [] });
+  },
+}));
