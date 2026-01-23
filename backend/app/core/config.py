@@ -25,8 +25,11 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
     
+    # Java Configuration
+    JAVA_HOME: Optional[str] = "/usr/lib/jvm/java-17-openjdk-amd64"
+    
     # CORS Configuration
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     
     @property
     def cors_origins(self) -> List[str]:
@@ -49,6 +52,13 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     
+    @validator('JAVA_HOME', pre=True)
+    def set_java_home_env(cls, v):
+        """Set JAVA_HOME environment variable if provided"""
+        if v:
+            os.environ['JAVA_HOME'] = v
+        return v
+    
     def validate_config(self) -> None:
         """Validate required configuration parameters"""
         required_fields = [
@@ -67,6 +77,12 @@ class Settings(BaseSettings):
         
         if missing_fields:
             raise ValueError(f"Missing required configuration: {', '.join(missing_fields)}")
+        
+        # Validate Java configuration
+        if self.JAVA_HOME:
+            java_executable = os.path.join(self.JAVA_HOME, 'bin', 'java')
+            if not os.path.exists(java_executable):
+                raise ValueError(f"Java executable not found at {java_executable}. Please check JAVA_HOME configuration.")
         
         # Validate paths exist or can be created
         for path_field in ['PORTADA_BASE_PATH', 'INGESTION_FOLDER']:

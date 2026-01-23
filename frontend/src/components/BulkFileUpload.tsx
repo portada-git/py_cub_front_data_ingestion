@@ -398,10 +398,10 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
         <p className="text-gray-600 mb-4">
           {t('ingestion.dragFiles')}
         </p>
-        {ingestionType === 'extraction_data' && !publication?.trim() && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              {t('ingestion.publicationRequired')}
+        {ingestionType === 'extraction_data' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              💡 La publicación se extrae automáticamente de los datos JSON. Puedes seleccionar una publicación específica si deseas sobrescribir esta información.
             </p>
           </div>
         )}

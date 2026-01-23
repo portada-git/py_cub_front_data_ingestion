@@ -166,8 +166,10 @@ class PortAdaService:
         """
         Ingest extraction data from JSON file
         
-        The PortAda library automatically extracts publication information from the JSON data,
-        so the newspaper parameter is optional and mainly used for organization.
+        The PortAda library expects JSON files to contain a flat array of entry objects.
+        This method handles both formats:
+        1. Flat array: [{"publication_date": "...", ...}, ...]
+        2. Nested format: {"entries": [{"publication_date": "...", ...}], ...}
         
         Args:
             file_path: Path to the JSON file
@@ -181,38 +183,73 @@ class PortAdaService:
             self.logger.info(f"Starting extraction data ingestion: {file_path}")
             layer_news = self._get_news_layer()
             
-            # Count records before ingestion
+            # Read and process JSON data
             async with aiofiles.open(file_path, 'r') as f:
                 content = await f.read()
                 data = json.loads(content)
-                
-                # Handle different JSON structures
-                if isinstance(data, list):
-                    record_count = len(data)
-                elif isinstance(data, dict):
-                    # Look for common array keys in newspaper data
-                    for key in ['entries', 'news', 'articles', 'data', 'items']:
-                        if key in data and isinstance(data[key], list):
-                            record_count = len(data[key])
-                            break
-                    else:
-                        record_count = 1
+            
+            # Convert to flat array format if needed
+            if isinstance(data, list):
+                # Already in flat array format
+                entries = data
+                record_count = len(entries)
+                self.logger.info(f"JSON is already in flat array format with {record_count} entries")
+            elif isinstance(data, dict):
+                # Nested format - extract entries and add metadata to each entry
+                if 'entries' in data and isinstance(data['entries'], list):
+                    entries = []
+                    base_metadata = {
+                        'publication_date': data.get('publication_date'),
+                        'publication_name': data.get('publication_name'),
+                        'publication_edition': data.get('publication_edition')
+                    }
+                    
+                    # Add metadata to each entry if not already present
+                    for entry in data['entries']:
+                        enhanced_entry = entry.copy()
+                        for key, value in base_metadata.items():
+                            if key not in enhanced_entry and value is not None:
+                                enhanced_entry[key] = value
+                        entries.append(enhanced_entry)
+                    
+                    record_count = len(entries)
+                    self.logger.info(f"Converted nested format to flat array with {record_count} entries")
                 else:
+                    # Single entry object
+                    entries = [data]
                     record_count = 1
+                    self.logger.info("Converted single object to flat array with 1 entry")
+            else:
+                raise ValueError(f"Unsupported JSON format: expected array or object, got {type(data)}")
             
-            # Use the data_path_delta_lake directly - the library handles publication organization
-            destination_path = data_path_delta_lake
+            # Create temporary file with flat array format
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                json.dump(entries, temp_file, indent=2)
+                temp_file_path = temp_file.name
             
-            # Perform ingestion using PortAda library with user information
-            # The library will automatically organize by publication_name, date, and edition
-            layer_news.ingest(destination_path, local_path=file_path, user="api_user")
-            
-            self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
-            return {
-                "success": True,
-                "records_processed": record_count,
-                "message": f"Successfully ingested {record_count} records. Data organized automatically by publication and date."
-            }
+            try:
+                # Use the data_path_delta_lake directly - the library handles publication organization
+                destination_path = data_path_delta_lake
+                
+                # Perform ingestion using PortAda library with user information
+                # The library will automatically organize by publication_name, date, and edition
+                # Note: ingest signature is (*container_path, local_path: str, user: str)
+                layer_news.ingest(destination_path, local_path=temp_file_path, user="api_user")
+                
+                self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
+                return {
+                    "success": True,
+                    "records_processed": record_count,
+                    "message": f"Successfully ingested {record_count} records. Data organized automatically by publication and date."
+                }
+            finally:
+                # Clean up temporary file
+                import os
+                try:
+                    os.unlink(temp_file_path)
+                except Exception as e:
+                    self.logger.warning(f"Could not delete temporary file {temp_file_path}: {e}")
             
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON format in file {file_path}: {e}")

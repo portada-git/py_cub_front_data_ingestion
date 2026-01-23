@@ -24,7 +24,7 @@ class FileFormat(str, Enum):
 class IngestionRequest(BaseModel):
     """Request model for data ingestion"""
     ingestion_type: IngestionType = Field(..., description="Type of ingestion to perform")
-    publication: Optional[str] = Field(None, description="Publication identifier (required for extraction data)")
+    publication: Optional[str] = Field(None, description="Publication identifier (optional - extracted automatically from JSON data)")
     entity_name: Optional[str] = Field("known_entities", description="Entity name (for known entities ingestion)")
     data_path_delta_lake: Optional[str] = Field("ship_entries", description="Destination path in delta lake")
     

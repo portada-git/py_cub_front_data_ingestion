@@ -4,7 +4,7 @@
  * Supports both single and multiple file uploads with internationalization
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { 
@@ -46,7 +46,7 @@ const IngestionView: React.FC = () => {
     }));
   };
 
-  const handleUploadComplete = (stats: any) => {
+  const handleUploadComplete = useCallback((stats: any) => {
     addNotification({
       type: 'success',
       title: t('notifications.bulkUploadComplete'),
@@ -56,12 +56,12 @@ const IngestionView: React.FC = () => {
         records: stats.totalRecordsProcessed
       })
     });
-  };
+  }, [addNotification, t]);
 
-  const handleFileProcessed = (file: any) => {
+  const handleFileProcessed = useCallback((file: any) => {
     // Optional: Handle individual file completion
     console.log('Archivo procesado:', file.file.name);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -206,7 +206,7 @@ const IngestionView: React.FC = () => {
       <div className="card">
         <UnifiedFileUpload
           ingestionType={selectedType}
-          publication={selectedType === 'extraction_data' ? formData.publication || undefined : undefined}
+          publication={selectedType === 'extraction_data' ? (formData.publication && formData.publication.trim() ? formData.publication : undefined) : undefined}
           entityName={selectedType === 'known_entities' ? formData.entityName : undefined}
           maxConcurrentUploads={5}
           maxRetries={3}

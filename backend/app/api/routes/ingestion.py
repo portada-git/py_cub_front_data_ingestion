@@ -103,17 +103,18 @@ async def upload_data(
     """
     try:
         # Pre-validation checks for better error messages
-        if ingestion_type == IngestionType.EXTRACTION_DATA:
-            if not publication or not publication.strip():
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "message": "Publication is required for extraction data ingestion",
-                        "errors": ["Please select a publication before uploading extraction data files"],
-                        "error_code": "PUBLICATION_REQUIRED",
-                        "field_errors": {"publication": "This field is required for extraction data"}
-                    }
-                )
+        # Note: Publication is optional for extraction data when JSON contains publication_name
+        # if ingestion_type == IngestionType.EXTRACTION_DATA:
+        #     if not publication or not publication.strip():
+        #         raise HTTPException(
+        #             status_code=422,
+        #             detail={
+        #                 "message": "Publication is required for extraction data ingestion",
+        #                 "errors": ["Please select a publication before uploading extraction data files"],
+        #                 "error_code": "PUBLICATION_REQUIRED",
+        #                 "field_errors": {"publication": "This field is required for extraction data"}
+        #             }
+        #         )
         
         if ingestion_type == IngestionType.KNOWN_ENTITIES:
             if not entity_name or not entity_name.strip():
@@ -139,6 +140,7 @@ async def upload_data(
                 }
             )
         logger.info(f"Upload request from user {current_user['username']}: {ingestion_type.value} ingestion for file {file.filename} (size: {file.size} bytes)")
+        logger.info(f"Request parameters - publication: '{publication}', entity_name: '{entity_name}', data_path_delta_lake: '{data_path_delta_lake}'")
         
         # Create ingestion request with enhanced validation error handling
         try:
@@ -168,6 +170,7 @@ async def upload_data(
                     validation_errors.append(f"{field.replace('_', ' ').title()}: {error_msg}")
             
             logger.warning(f"Validation error for user {current_user['username']}: {validation_errors}")
+            logger.warning(f"Raw form data - ingestion_type: '{ingestion_type}', publication: '{publication}', entity_name: '{entity_name}'")
             
             raise HTTPException(
                 status_code=422,

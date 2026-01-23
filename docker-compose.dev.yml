@@ -12,7 +12,7 @@ services:
       - PORTADA_BASE_PATH=/app/data
       - PORTADA_APP_NAME=PortAdaAPI
       - PORTADA_PROJECT_NAME=portada_ingestion
-      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
     volumes:
       - ./backend:/app
       - portada_data:/app/data
