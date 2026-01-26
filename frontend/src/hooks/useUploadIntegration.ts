@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useUploadStore, UploadTask } from '../store/useUploadStore';
+import { useUploadStore } from '../store/useUploadStore';
 import { useNotificationStore } from '../store/useStore';
 import { IngestionResponse } from '../types';
 

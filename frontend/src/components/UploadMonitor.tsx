@@ -4,15 +4,10 @@
  */
 
 import React, { useEffect, useCallback, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   CheckCircle, 
-  AlertCircle, 
-  Clock, 
   X, 
   RotateCcw,
-  Pause,
-  Play,
   Minimize2,
   Maximize2
 } from 'lucide-react';
@@ -35,7 +30,6 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
   minimized = false,
   onToggleMinimize
 }) => {
-  const { t } = useTranslation();
   const { addNotification } = useNotificationStore();
   
   const {
@@ -53,7 +47,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
     clearCompletedTasks
   } = useUploadStore();
   
-  const pollTimeoutRef = useRef<NodeJS.Timeout>();
+  const pollTimeoutRef = useRef<number>();
   const activeTasks = getActiveTasks();
   const stats = getStats();
   
@@ -127,7 +121,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
     
     // Schedule next poll
     if (isPolling) {
-      pollTimeoutRef.current = setTimeout(pollAllActiveTasks, pollInterval);
+      pollTimeoutRef.current = window.setTimeout(pollAllActiveTasks, pollInterval);
     }
   }, [getActiveTasks, pollTaskStatus, isPolling, pollInterval, stopPolling]);
   
@@ -146,7 +140,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
     
     return () => {
       if (pollTimeoutRef.current) {
-        clearTimeout(pollTimeoutRef.current);
+        window.clearTimeout(pollTimeoutRef.current);
       }
     };
   }, [isPolling, pollAllActiveTasks, activeTasks.length]);

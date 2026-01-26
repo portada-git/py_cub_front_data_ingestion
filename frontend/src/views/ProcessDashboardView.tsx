@@ -1,0 +1,518 @@
+/**
+ * Process Dashboard View - Vista centralizada de todos los procesos de carga
+ * Permite gestionar, monitorear y analizar todos los uploads del sistema
+ */
+
+import React, { useState, useMemo } from 'react';
+import { 
+  Activity,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Trash2,
+  RotateCcw,
+  Download,
+  Filter,
+  Search,
+  BarChart3,
+  FileText,
+  Database,
+  Zap,
+  TrendingUp
+} from 'lucide-react';
+import { clsx } from 'clsx';
+import { useUploadStore, UploadTask } from '../store/useUploadStore';
+import LoadingSpinner from '../components/LoadingSpinner';
+
+type FilterStatus = 'all' | 'active' | 'completed' | 'failed';
+type FilterType = 'all' | 'extraction_data' | 'known_entities';
+
+const ProcessDashboardView: React.FC = () => {
+  const {
+    tasks,
+    isPolling,
+    getStats,
+    removeTask,
+    retryTask,
+    clearCompletedTasks,
+    clearAllTasks
+  } = useUploadStore();
+  
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'status' | 'records'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  const stats = getStats();
+  
+  // Filter and sort tasks
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks;
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'active') {
+        filtered = filtered.filter(task => 
+          ['pending', 'uploading', 'processing'].includes(task.status)
+        );
+      } else if (filterStatus === 'completed') {
+        filtered = filtered.filter(task => task.status === 'completed');
+      } else if (filterStatus === 'failed') {
+        filtered = filtered.filter(task => 
+          ['failed', 'cancelled'].includes(task.status)
+        );
+      }
+    }
+    
+    // Filter by type
+    if (filterType !== 'all') {
+      filtered = filtered.filter(task => task.ingestionType === filterType);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(task =>
+        task.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.publication?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.message.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'date':
+          comparison = a.startTime.getTime() - b.startTime.getTime();
+          break;
+        case 'name':
+          comparison = a.fileName.localeCompare(b.fileName);
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'records':
+          comparison = (a.recordsProcessed || 0) - (b.recordsProcessed || 0);
+          break;
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+    
+    return filtered;
+  }, [tasks, filterStatus, filterType, searchTerm, sortBy, sortOrder]);
+  
+  const formatTime = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
+  
+  const formatFileSize = (bytes: number): string => {
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  };
+  
+  const getStatusIcon = (status: UploadTask['status']) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      case 'uploading':
+      case 'processing':
+        return <LoadingSpinner size="sm" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed':
+      case 'cancelled':
+        return <AlertCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />;
+    }
+  };
+  
+  const getStatusColor = (status: UploadTask['status']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'uploading':
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const exportData = () => {
+    const data = filteredTasks.map(task => ({
+      fileName: task.fileName,
+      status: task.status,
+      ingestionType: task.ingestionType,
+      publication: task.publication,
+      recordsProcessed: task.recordsProcessed,
+      startTime: task.startTime.toISOString(),
+      endTime: task.endTime?.toISOString(),
+      duration: task.endTime ? task.endTime.getTime() - task.startTime.getTime() : null,
+      error: task.error
+    }));
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `process-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+          <Activity className="w-6 h-6 mr-2" />
+          Dashboard de Procesos
+        </h1>
+        <p className="mt-1 text-sm text-gray-600">
+          Monitoreo y gestión centralizada de todos los procesos de carga
+        </p>
+      </div>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <BarChart3 className="w-8 h-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Procesos</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalTasks}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Zap className="w-8 h-8 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Activos</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.activeTasks}</p>
+              {isPolling && (
+                <div className="flex items-center mt-1">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-1" />
+                  <span className="text-xs text-green-600">Monitoreando</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Completados</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.completedTasks}</p>
+              {stats.totalTasks > 0 && (
+                <p className="text-xs text-gray-500">
+                  {Math.round((stats.completedTasks / stats.totalTasks) * 100)}% éxito
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="card">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <TrendingUp className="w-8 h-8 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Registros</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.totalRecordsProcessed.toLocaleString()}
+              </p>
+              {stats.averageProcessingTime > 0 && (
+                <p className="text-xs text-gray-500">
+                  Promedio: {formatTime(stats.averageProcessingTime)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Controls */}
+      <div className="card">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+                className="input-sm"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="completed">Completados</option>
+                <option value="failed">Fallidos</option>
+              </select>
+            </div>
+            
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as FilterType)}
+              className="input-sm"
+            >
+              <option value="all">Todos los tipos</option>
+              <option value="extraction_data">Datos de Extracción</option>
+              <option value="known_entities">Entidades Conocidas</option>
+            </select>
+            
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar archivos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-sm pl-10"
+              />
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={exportData}
+              className="btn btn-secondary btn-sm"
+              disabled={filteredTasks.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </button>
+            
+            {stats.completedTasks > 0 && (
+              <button
+                onClick={clearCompletedTasks}
+                className="btn btn-secondary btn-sm"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Limpiar Completados
+              </button>
+            )}
+            
+            {stats.totalTasks > 0 && (
+              <button
+                onClick={clearAllTasks}
+                className="btn btn-danger btn-sm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpiar Todo
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Tasks Table */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Procesos ({filteredTasks.length})
+          </h3>
+          
+          {/* Sort Controls */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Ordenar por:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="input-sm"
+            >
+              <option value="date">Fecha</option>
+              <option value="name">Nombre</option>
+              <option value="status">Estado</option>
+              <option value="records">Registros</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="btn btn-secondary btn-sm"
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
+        </div>
+        
+        {filteredTasks.length === 0 ? (
+          <div className="text-center py-12">
+            <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No hay procesos
+            </h3>
+            <p className="text-gray-600">
+              {tasks.length === 0 
+                ? "No se han iniciado procesos de carga aún"
+                : "No hay procesos que coincidan con los filtros aplicados"
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Archivo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Progreso
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Registros
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tiempo
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTasks.map((task) => (
+                  <tr key={task.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {task.ingestionType === 'extraction_data' ? (
+                          <FileText className="w-5 h-5 text-blue-500 mr-3" />
+                        ) : (
+                          <Database className="w-5 h-5 text-purple-500 mr-3" />
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {task.fileName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatFileSize(task.fileSize)}
+                            {task.publication && ` • ${task.publication}`}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getStatusIcon(task.status)}
+                        <span className={clsx(
+                          'ml-2 px-2 py-1 text-xs font-medium rounded-full',
+                          getStatusColor(task.status)
+                        )}>
+                          {task.status}
+                        </span>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.ingestionType === 'extraction_data' ? 'Extracción' : 'Entidades'}
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                          <div
+                            className={clsx(
+                              'h-2 rounded-full',
+                              task.status === 'completed' ? 'bg-green-500' :
+                              task.status === 'failed' ? 'bg-red-500' :
+                              'bg-blue-500'
+                            )}
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-600">{task.progress}%</span>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.recordsProcessed?.toLocaleString() || '-'}
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {task.endTime ? (
+                        <div>
+                          <div>{formatTime(task.endTime.getTime() - task.startTime.getTime())}</div>
+                          <div className="text-xs">
+                            {task.endTime.toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div>En progreso...</div>
+                          <div className="text-xs">
+                            {task.startTime.toLocaleTimeString()}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        {task.status === 'failed' && task.retryCount < task.maxRetries && (
+                          <button
+                            onClick={() => retryTask(task.id)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Reintentar"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={() => removeTask(task.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProcessDashboardView;

@@ -14,10 +14,12 @@ import {
   LogOut,
   Menu,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUIStore } from '../store/useStore';
+import { useUploadStore } from '../store/useUploadStore';
 import MobileMenu from './MobileMenu';
 import LanguageSelector from './LanguageSelector';
 import clsx from 'clsx';
@@ -30,7 +32,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const { sidebarOpen, setSidebarOpen, expandedMenus, toggleMenuExpansion } = useUIStore();
+  const { getStats } = useUploadStore();
   const location = useLocation();
+  
+  const uploadStats = getStats();
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -52,6 +57,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: t('navigation.dashboard'), href: '/dashboard', icon: Home },
     { name: t('navigation.ingestion'), href: '/ingestion', icon: Upload },
+    { 
+      name: 'Procesos', 
+      href: '/processes', 
+      icon: Activity,
+      badge: uploadStats.activeTasks > 0 ? uploadStats.activeTasks : undefined
+    },
     { 
       name: t('navigation.analysis'), 
       href: '/analysis', 
@@ -143,7 +154,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       aria-current={isActive ? 'page' : undefined}
                     >
                       <item.icon className="w-5 h-5 mr-3" aria-hidden="true" />
-                      {item.name}
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )}
                   

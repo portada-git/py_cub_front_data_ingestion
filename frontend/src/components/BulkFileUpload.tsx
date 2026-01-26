@@ -1,29 +1,27 @@
 /**
  * Unified File Upload Component
  * Handles both single and multiple file uploads with batch processing, queue management, and real-time monitoring
+ * Integrado con el sistema de monitoreo persistente
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   X, 
   CheckCircle, 
   AlertCircle, 
-  Pause, 
-  Play, 
-  RotateCcw,
-  Trash2,
   FolderOpen,
-  BarChart3,
-  Clock,
-  Zap
+  Play,
+  ExternalLink,
+  ArrowRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiService } from '../services/api';
-import { withErrorHandling } from '../utils/apiErrorHandler';
 import { IngestionResponse } from '../types';
+import { useUploadIntegration } from '../hooks/useUploadIntegration';
 import LoadingSpinner from './LoadingSpinner';
 
 interface FileUploadItem {
@@ -36,6 +34,7 @@ interface FileUploadItem {
   retryCount: number;
   uploadStartTime?: number;
   uploadEndTime?: number;
+  uploadId?: string; // ID en el store persistente
 }
 
 interface UnifiedUploadStats {
@@ -70,23 +69,19 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   onFileProcessed
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [files, setFiles] = useState<FileUploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [stats, setStats] = useState<UnifiedUploadStats>({
-    total: 0,
-    pending: 0,
-    uploading: 0,
-    success: 0,
-    error: 0,
-    paused: 0,
-    totalRecordsProcessed: 0,
-    averageUploadTime: 0,
-    estimatedTimeRemaining: 0
-  });
-
+  
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  
+  // Integration with persistent upload store
+  const { createUploadHandler } = useUploadIntegration({
+    ingestionType,
+    publication,
+    entityName
+  });
 
   // Calculate stats whenever files change
   useEffect(() => {
@@ -197,37 +192,35 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
           : f
       ));
 
-      const result = await withErrorHandling(async () => {
+      // Use integrated upload handler that connects to persistent store
+      const uploadHandler = createUploadHandler(async (file, onProgress) => {
         return await apiService.uploadFile(
-          fileItem.file,
+          file,
           ingestionType,
           publication,
           entityName,
           undefined,
-          (progress) => {
-            setFiles(prev => prev.map(f => 
-              f.id === fileItem.id ? { ...f, progress } : f
-            ));
-          }
+          onProgress
         );
       });
 
-      if (result) {
-        setFiles(prev => prev.map(f => 
-          f.id === fileItem.id 
-            ? { 
-                ...f, 
-                status: 'success', 
-                progress: 100, 
-                result,
-                uploadEndTime: Date.now()
-              }
-            : f
-        ));
-        onFileProcessed?.(fileItem);
-      } else {
-        throw new Error('Upload failed');
-      }
+      const uploadId = await uploadHandler(fileItem.file);
+
+      // Mark as uploaded and processing - the persistent store will handle status updates
+      setFiles(prev => prev.map(f => 
+        f.id === fileItem.id 
+          ? { 
+              ...f, 
+              status: 'success', // Local success - file uploaded
+              progress: 100,
+              uploadEndTime: Date.now(),
+              uploadId // Store the persistent upload ID for reference
+            }
+          : f
+      ));
+      
+      onFileProcessed?.(fileItem);
+
     } catch (error) {
       let errorMessage = t('notifications.unknownError');
       
@@ -421,6 +414,14 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               {t('ingestion.statistics')}
             </h3>
             <div className="flex space-x-2">
+              <Link
+                to="/processes"
+                className="btn btn-secondary"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Ver Dashboard Completo
+              </Link>
+              
               {!isProcessing ? (
                 <button
                   onClick={startProcessing}
@@ -525,6 +526,35 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Global Monitoring Info */}
+      {files.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <BarChart3 className="w-5 h-5 text-blue-600 mt-0.5" />
+            </div>
+            <div className="ml-3">
+              <h4 className="text-sm font-medium text-blue-900">
+                Monitoreo Global Activo
+              </h4>
+              <p className="text-sm text-blue-700 mt-1">
+                Los archivos subidos se procesan en segundo plano y se pueden monitorear desde cualquier vista. 
+                Usa el <strong>monitor flotante</strong> (esquina inferior derecha) o el <strong>Dashboard de Procesos</strong> 
+                para seguimiento completo.
+              </p>
+              <div className="mt-2">
+                <Link
+                  to="/processes"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Ver Dashboard de Procesos →
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

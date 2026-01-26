@@ -6,14 +6,17 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useStore';
+import { useUploadStore } from './store/useUploadStore';
 import { useSession } from './hooks/useSession';
 import Layout from './components/Layout';
 import LoginView from './views/LoginView';
 import DashboardView from './views/DashboardView';
 import IngestionView from './views/IngestionView';
 import AnalysisView from './views/AnalysisView';
+import ProcessDashboardView from './views/ProcessDashboardView';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationContainer from './components/NotificationContainer';
+import UploadMonitor from './components/UploadMonitor';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Initialize i18n
@@ -31,6 +34,7 @@ const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ childr
 
 const App: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
+  const { getStats } = useUploadStore();
   
   // Initialize session management for authenticated users with longer intervals
   useSession({
@@ -49,6 +53,8 @@ const App: React.FC = () => {
     }
   }, []); // Remove isAuthenticated dependency to prevent re-runs
 
+  const uploadStats = getStats();
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
@@ -64,6 +70,7 @@ const App: React.FC = () => {
                     <Route path="/dashboard" element={<DashboardView />} />
                     <Route path="/ingestion" element={<IngestionView />} />
                     <Route path="/analysis/*" element={<AnalysisView />} />
+                    <Route path="/processes" element={<ProcessDashboardView />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </Layout>
@@ -74,6 +81,11 @@ const App: React.FC = () => {
         
         {/* Global notification container */}
         <NotificationContainer />
+        
+        {/* Upload Monitor - Always visible when there are tasks */}
+        {isAuthenticated && uploadStats.totalTasks > 0 && (
+          <UploadMonitor position="bottom-right" />
+        )}
       </div>
     </ErrorBoundary>
   );
