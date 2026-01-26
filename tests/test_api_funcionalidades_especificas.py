@@ -119,9 +119,9 @@ def test_file_upload():
     
     # Verificar que existe un archivo de demo
     demo_files = [
-        "demo_json_completo_habana_1903.json",
-        "demo_json_barcelona_1854.json",
-        "demo_json_buenos_aires_1852.json"
+        ".data/demo_json_completo_habana_1903.json",
+        ".data/demo_json_barcelona_1854.json",
+        ".data/demo_json_buenos_aires_1852.json"
     ]
     
     for demo_file in demo_files:

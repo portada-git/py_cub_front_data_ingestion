@@ -4,18 +4,30 @@ Configuration settings for the PortAda application
 
 import os
 from typing import List, Optional
+from pathlib import Path
 from pydantic import validator
 from pydantic_settings import BaseSettings
+
+# Calculate project root directory - use environment variable or calculate
+PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', Path(__file__).parent.parent.parent.parent))
+STORAGE_DIR = PROJECT_ROOT / ".storage"
+
+# Ensure we use absolute paths to avoid working directory issues
+STORAGE_DIR = STORAGE_DIR.resolve()
+
+# Debug print to verify paths
+print(f"🔧 PROJECT_ROOT: {PROJECT_ROOT.resolve()}")
+print(f"🔧 STORAGE_DIR: {STORAGE_DIR}")
 
 
 class Settings(BaseSettings):
     """Application settings"""
     
-    # PortAda Configuration
-    PORTADA_BASE_PATH: str = "/tmp/portada_data"
+    # PortAda Configuration - Using project-relative paths
+    PORTADA_BASE_PATH: str = str(STORAGE_DIR / "portada_data")
     PORTADA_APP_NAME: str = "PortAdaAPI"
     PORTADA_PROJECT_NAME: str = "portada_ingestion"
-    INGESTION_FOLDER: str = "/tmp/portada_ingestion"
+    INGESTION_FOLDER: str = str(STORAGE_DIR / "ingestion")
     
     # FastAPI Configuration
     SECRET_KEY: str = "your-secret-key-change-in-production"
@@ -84,13 +96,15 @@ class Settings(BaseSettings):
             if not os.path.exists(java_executable):
                 raise ValueError(f"Java executable not found at {java_executable}. Please check JAVA_HOME configuration.")
         
-        # Validate paths exist or can be created
+        # Validate paths exist or can be created - using absolute paths
         for path_field in ['PORTADA_BASE_PATH', 'INGESTION_FOLDER']:
             path = getattr(self, path_field)
+            abs_path = Path(path).resolve()  # Convert to absolute path
             try:
-                os.makedirs(path, exist_ok=True)
+                abs_path.mkdir(parents=True, exist_ok=True)
+                print(f"✅ Storage directory ready: {abs_path}")
             except Exception as e:
-                raise ValueError(f"Cannot create directory {path_field}={path}: {e}")
+                raise ValueError(f"Cannot create directory {path_field}={abs_path}: {e}")
     
     class Config:
         env_file = ".env"

@@ -267,9 +267,9 @@ class PortAdaDataValidator:
         
         # Subir archivos de prueba
         test_files = [
-            "demo_json_completo_habana_1903.json",
-            "demo_json_barcelona_1854.json",
-            "demo_json_buenos_aires_1852.json"
+            ".data/demo_json_completo_habana_1903.json",
+            ".data/demo_json_barcelona_1854.json",
+            ".data/demo_json_buenos_aires_1852.json"
         ]
         
         print("\n📤 FASE 1: SUBIDA Y PROCESAMIENTO DE ARCHIVOS")
