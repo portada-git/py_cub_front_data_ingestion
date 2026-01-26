@@ -15,10 +15,6 @@ STORAGE_DIR = PROJECT_ROOT / ".storage"
 # Ensure we use absolute paths to avoid working directory issues
 STORAGE_DIR = STORAGE_DIR.resolve()
 
-# Debug print to verify paths
-print(f"🔧 PROJECT_ROOT: {PROJECT_ROOT.resolve()}")
-print(f"🔧 STORAGE_DIR: {STORAGE_DIR}")
-
 
 class Settings(BaseSettings):
     """Application settings"""
