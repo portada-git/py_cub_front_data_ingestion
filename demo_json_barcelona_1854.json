@@ -1,0 +1,153 @@
+[
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1854-04-25",
+    "publication_name": "DB",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Marsella",
+    "travel_arrival_port": "Barcelona",
+    "travel_departure_date": "1854-04-22",
+    "travel_arrival_date": "1854-04-25",
+    "travel_arrival_moment": "mañana",
+    "travel_duration_value": "3",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "bergantín",
+    "ship_flag": "francés",
+    "ship_name": "Marie Claire",
+    "ship_tons_capacity": "450",
+    "ship_tons_unit": "toneladas",
+    "master_role": "cap.",
+    "master_name": "Dubois",
+    "ship_agent_name": "Casa Girona",
+    "crew_number": 18,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Casa Girona",
+        "cargo": [
+          {
+            "cargo_quantity": "300",
+            "cargo_unit": "cajas",
+            "cargo_commodity": "sedas"
+          },
+          {
+            "cargo_quantity": "150",
+            "cargo_unit": "fardos",
+            "cargo_commodity": "paños"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "Comerciantes varios",
+        "cargo": [
+          {
+            "cargo_quantity": "50",
+            "cargo_unit": "barriles",
+            "cargo_commodity": "aceitunas"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Marsella, bergantín francés Marie Claire, cap. Dubois, 18 tripulantes, 450 toneladas, con sedas, paños y aceitunas para Casa Girona y comerciantes varios.",
+    "obs": "Carga de lujo procedente de Francia"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1854-04-25",
+    "publication_name": "DB",
+    "publication_edition": "M",
+    "news_section": "E",
+    "travel_departure_port": "Génova",
+    "travel_arrival_port": "Barcelona",
+    "travel_departure_date": "1854-04-20",
+    "travel_arrival_date": "1854-04-24",
+    "travel_arrival_moment": "tarde",
+    "travel_duration_value": "4",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": ["Niza", "Cannes"],
+    "ship_type": "goleta",
+    "ship_flag": "italiano",
+    "ship_name": "San Giuseppe",
+    "ship_tons_capacity": "280",
+    "ship_tons_unit": "toneladas",
+    "master_role": "pat.",
+    "master_name": "Rossi",
+    "ship_agent_name": "Hermanos Tous",
+    "crew_number": 12,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Hermanos Tous",
+        "cargo": [
+          {
+            "cargo_quantity": "200",
+            "cargo_unit": "quintales",
+            "cargo_commodity": "arroz"
+          },
+          {
+            "cargo_quantity": "80",
+            "cargo_unit": "damajuanas",
+            "cargo_commodity": "aceite de oliva"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": true,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Génova, goleta italiana San Giuseppe, patrón Rossi, 12 tripulantes, 280 toneladas, arribada forzosa por temporal, con arroz y aceite para Hermanos Tous.",
+    "obs": "Arribada forzosa por temporal en el Golfo de León"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1854-04-25",
+    "publication_name": "DB",
+    "publication_edition": "T",
+    "news_section": "M",
+    "travel_departure_port": "Palma",
+    "travel_arrival_port": "Barcelona",
+    "travel_departure_date": "1854-04-23",
+    "travel_arrival_date": "1854-04-25",
+    "travel_arrival_moment": null,
+    "travel_duration_value": "2",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "laúd",
+    "ship_flag": "español",
+    "ship_name": "Nuestra Señora del Carmen",
+    "ship_tons_capacity": "120",
+    "ship_tons_unit": "toneladas",
+    "master_role": "pat.",
+    "master_name": "Mayans",
+    "ship_agent_name": "a la orden",
+    "crew_number": 8,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "a la orden",
+        "cargo": [
+          {
+            "cargo_quantity": "392",
+            "cargo_unit": "tercios",
+            "cargo_commodity": "tabaco"
+          },
+          {
+            "cargo_quantity": "20",
+            "cargo_unit": "arrobas",
+            "cargo_commodity": "cera"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Palma, laúd español Nuestra Señora del Carmen, patrón Mayans, 8 tripulantes, 120 toneladas, con 392 tercios de tabaco y 20 arrobas de cera, a la orden.",
+    "obs": "Cabotaje doméstico - Islas Baleares"
+  }
+]

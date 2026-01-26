@@ -1,0 +1,163 @@
+[
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1855-06-10",
+    "publication_name": "SM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Argel",
+    "travel_arrival_port": "Marsella",
+    "travel_departure_date": "1855-06-08",
+    "travel_arrival_date": "1855-06-10",
+    "travel_arrival_moment": "mañana",
+    "travel_duration_value": "2",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "vapor",
+    "ship_flag": "francés",
+    "ship_name": "Alger",
+    "ship_tons_capacity": "900",
+    "ship_tons_unit": "tonneaux",
+    "master_role": "cap.",
+    "master_name": "Dubois",
+    "ship_agent_name": "Compagnie Générale Transatlantique",
+    "crew_number": 38,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Compagnie Générale Transatlantique",
+        "cargo": [
+          {
+            "cargo_quantity": "200",
+            "cargo_unit": "sacs",
+            "cargo_commodity": "blé"
+          },
+          {
+            "cargo_quantity": "150",
+            "cargo_unit": "caisses",
+            "cargo_commodity": "dattes"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "Maison Roux",
+        "cargo": [
+          {
+            "cargo_quantity": "80",
+            "cargo_unit": "ballots",
+            "cargo_commodity": "laine"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "D'Alger, vapeur français Alger, cap. Dubois, 38 hommes d'équipage, 900 tonneaux, avec blé, dattes et laine pour Compagnie Générale Transatlantique et Maison Roux.",
+    "obs": "Service régulier Algérie-France"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1855-06-10",
+    "publication_name": "SM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Constantinople",
+    "travel_arrival_port": "Marsella",
+    "travel_departure_date": "1855-05-25",
+    "travel_arrival_date": "1855-06-09",
+    "travel_arrival_moment": "soir",
+    "travel_duration_value": "15",
+    "travel_duration_unit": "jours",
+    "travel_port_of_call_list": ["Smyrne", "Le Pirée", "Naples"],
+    "ship_type": "brick",
+    "ship_flag": "grec",
+    "ship_name": "Helios",
+    "ship_tons_capacity": "450",
+    "ship_tons_unit": "tonneaux",
+    "master_role": "cap.",
+    "master_name": "Papadopoulos",
+    "ship_agent_name": "Fraissinet et Cie",
+    "crew_number": 20,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Fraissinet et Cie",
+        "cargo": [
+          {
+            "cargo_quantity": "300",
+            "cargo_unit": "caisses",
+            "cargo_commodity": "raisins secs"
+          },
+          {
+            "cargo_quantity": "100",
+            "cargo_unit": "jarres",
+            "cargo_commodity": "huile d'olive"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "Négociants divers",
+        "cargo": [
+          {
+            "cargo_quantity": "50",
+            "cargo_unit": "ballots",
+            "cargo_commodity": "soie"
+          }
+        ]
+      }
+    ],
+    "quarantine": true,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Constantinople, brick grec Helios, cap. Papadopoulos, 20 hommes d'équipage, 450 tonneaux, avec raisins secs, huile d'olive et soie pour Fraissinet et Cie et négociants divers. Quarantaine sanitaire.",
+    "obs": "Quarantaine sanitaire - épidémie de choléra en Orient"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1855-06-10",
+    "publication_name": "SM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Gênes",
+    "travel_arrival_port": "Marsella",
+    "travel_departure_date": "1855-06-09",
+    "travel_arrival_date": "1855-06-10",
+    "travel_arrival_moment": "midi",
+    "travel_duration_value": "24",
+    "travel_duration_unit": "heures",
+    "travel_port_of_call_list": ["Nice"],
+    "ship_type": "goélette",
+    "ship_flag": "italien",
+    "ship_name": "Santa Maria",
+    "ship_tons_capacity": "180",
+    "ship_tons_unit": "tonneaux",
+    "master_role": "pat.",
+    "master_name": "Rossi",
+    "ship_agent_name": "Maison Pastré",
+    "crew_number": 10,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Maison Pastré",
+        "cargo": [
+          {
+            "cargo_quantity": "120",
+            "cargo_unit": "caisses",
+            "cargo_commodity": "pâtes"
+          },
+          {
+            "cargo_quantity": "60",
+            "cargo_unit": "dames-jeannes",
+            "cargo_commodity": "huile"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Gênes, goélette italienne Santa Maria, patron Rossi, 10 hommes d'équipage, 180 tonneaux, avec pâtes et huile pour Maison Pastré.",
+    "obs": "Cabotage méditerranéen - produits italiens"
+  }
+]

@@ -24,7 +24,7 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
 }) => {
   return (
     <div className={clsx(
-      'bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white',
+      'bg-white border border-gray-200 rounded-2xl p-6 text-gray-900 shadow-sm',
       className
     )}>
       {/* Header */}
@@ -33,8 +33,8 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
           <Icon className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">{title}</h2>
-          <p className="text-slate-400 text-sm">{subtitle}</p>
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          <p className="text-gray-600 text-sm">{subtitle}</p>
         </div>
       </div>
 

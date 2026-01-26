@@ -1,0 +1,99 @@
+[
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Cayo Hueso",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1903-01-30",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": "mañana",
+    "travel_duration_value": "1",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "vapor",
+    "ship_flag": "americano",
+    "ship_name": "Olivette",
+    "ship_tons_capacity": "1500",
+    "ship_tons_unit": "tons",
+    "master_role": "capitán",
+    "master_name": "Allen",
+    "ship_agent_name": "J. Cibils",
+    "crew_number": 25,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "G. Lawton Childs y cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "40",
+            "cargo_unit": "pipas",
+            "cargo_commodity": "caña"
+          },
+          {
+            "cargo_quantity": "50",
+            "cargo_unit": "barricas",
+            "cargo_commodity": "azúcar moscavada"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "J. M. Rodriguez",
+        "cargo": [
+          {
+            "cargo_quantity": "25",
+            "cargo_unit": "bultos",
+            "cargo_commodity": "tabaco"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Cayo Hueso, vapor americano Olivette, capitán Allen, consignado a J. Cibils, con 40 pipas caña y 50 barricas azúcar moscavada para G. Lawton Childs y cp., y 25 bultos tabaco para J. M. Rodriguez."
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Nueva York",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1903-01-28",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": "tarde",
+    "travel_duration_value": "3",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "bergantín",
+    "ship_flag": "español",
+    "ship_name": "San José",
+    "ship_tons_capacity": "800",
+    "ship_tons_unit": "tons",
+    "master_role": "capitán",
+    "master_name": "García",
+    "ship_agent_name": "Casa Comercial López",
+    "crew_number": 18,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "a la orden",
+        "cargo": [
+          {
+            "cargo_quantity": "100",
+            "cargo_unit": "barriles",
+            "cargo_commodity": "harina"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Nueva York, con escala en Nassau, bergantín español San José, capitán García, consignado a Casa Comercial López, con 100 barriles harina a la orden."
+  }
+]

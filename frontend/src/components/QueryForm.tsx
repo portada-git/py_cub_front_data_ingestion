@@ -41,7 +41,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
         type="submit"
         disabled={isLoading}
         className={clsx(
-          'w-full flex items-center justify-center px-6 py-3 text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900',
+          'w-full flex items-center justify-center px-6 py-3 text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white',
           colorClasses[submitColor],
           {
             'opacity-50 cursor-not-allowed': isLoading,

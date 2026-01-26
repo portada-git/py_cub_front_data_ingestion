@@ -42,11 +42,11 @@ export const FormField: React.FC<FormFieldProps> = ({
 }) => {
   return (
     <div className={clsx('space-y-2', className)}>
-      <label className="block text-sm font-medium text-slate-300">
+      <label className="block text-sm font-medium text-gray-700">
         {label}
       </label>
       {description && (
-        <p className="text-xs text-slate-500">{description}</p>
+        <p className="text-xs text-gray-500">{description}</p>
       )}
       {children}
     </div>
@@ -68,7 +68,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -98,7 +98,7 @@ export const InputField: React.FC<InputFieldProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
       />
     </FormField>
   );

@@ -1,0 +1,43 @@
+[
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Cayo Hueso",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1903-01-30",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": null,
+    "travel_duration_value": "1",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": [],
+    "ship_type": "vapor",
+    "ship_flag": "americano",
+    "ship_name": "Olivette",
+    "ship_tons_capacity": "1500",
+    "ship_tons_unit": "tons",
+    "master_role": "capitán",
+    "master_name": "Allen",
+    "ship_agent_name": null,
+    "crew_number": null,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "G. Lawton Childs y cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "50",
+            "cargo_unit": "bultos",
+            "cargo_commodity": "carga general"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Cayo Hueso, vapor Olivette, capitán Allen, con carga general para G. Lawton Childs y cp."
+  }
+]

@@ -1,0 +1,163 @@
+[
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Cayo Hueso",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1903-01-30",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": "mañana",
+    "travel_duration_value": "7",
+    "travel_duration_unit": "horas",
+    "travel_port_of_call_list": [],
+    "ship_type": "vapor",
+    "ship_flag": "americano",
+    "ship_name": "Olivette",
+    "ship_tons_capacity": "1604",
+    "ship_tons_unit": "toneladas",
+    "master_role": "cap.",
+    "master_name": "Allen",
+    "ship_agent_name": "G. Lawton Childs y cp.",
+    "crew_number": 55,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "G. Lawton Childs y cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "40",
+            "cargo_unit": "bultos",
+            "cargo_commodity": "carga general"
+          },
+          {
+            "cargo_quantity": "150",
+            "cargo_unit": "sacos",
+            "cargo_commodity": "correspondencia"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Cayo Hueso, en 7 horas, vapor americano Olivette, capitán Allen, tripulantes 55, toneladas 1.604 con carga general, correspondencia y 71 pasajeros á G. Lawton Childs y cp.",
+    "obs": "71 pasajeros reportados"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "New York",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1903-01-24",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": "tarde",
+    "travel_duration_value": "6.5",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": ["Nassau"],
+    "ship_type": "vapor",
+    "ship_flag": "alemán",
+    "ship_name": "Ing. Verben",
+    "ship_tons_capacity": "2633",
+    "ship_tons_unit": "toneladas",
+    "master_role": "cap.",
+    "master_name": "Mann",
+    "ship_agent_name": "Marimon, Varela y Cp.",
+    "crew_number": 22,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "Marimon, Varela y Cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "200",
+            "cargo_unit": "cajas",
+            "cargo_commodity": "maquinaria"
+          },
+          {
+            "cargo_quantity": "85",
+            "cargo_unit": "barriles",
+            "cargo_commodity": "aceite"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "J. Balcells y Cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "120",
+            "cargo_unit": "fardos",
+            "cargo_commodity": "algodón"
+          }
+        ]
+      }
+    ],
+    "quarantine": false,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De New York, en 6½ días, vapor alemán Ing. Verben, cap. Mann, trip. 22, ton. 2633, con carga general y Marimon, Varela y Cp.",
+    "obs": "Escala en Nassau"
+  },
+  {
+    "model_version": "boat_fact-00.00.01",
+    "publication_date": "1903-02-01",
+    "publication_name": "DM",
+    "publication_edition": "U",
+    "news_section": "E",
+    "travel_departure_port": "Liverpool",
+    "travel_arrival_port": "La Habana",
+    "travel_departure_date": "1902-12-31",
+    "travel_arrival_date": "1903-01-31",
+    "travel_arrival_moment": "noche",
+    "travel_duration_value": "31",
+    "travel_duration_unit": "días",
+    "travel_port_of_call_list": ["Cádiz", "Las Palmas", "Tenerife"],
+    "ship_type": "vapor",
+    "ship_flag": "español",
+    "ship_name": "Vivina",
+    "ship_tons_capacity": "2879",
+    "ship_tons_unit": "toneladas",
+    "master_role": "cap.",
+    "master_name": "Ruiz",
+    "ship_agent_name": "J. Balcells y Cp.",
+    "crew_number": 34,
+    "cargo_list": [
+      {
+        "cargo_merchant_name": "J. Balcells y Cp.",
+        "cargo": [
+          {
+            "cargo_quantity": "500",
+            "cargo_unit": "toneladas",
+            "cargo_commodity": "carbón"
+          },
+          {
+            "cargo_quantity": "75",
+            "cargo_unit": "pipas",
+            "cargo_commodity": "vino"
+          }
+        ]
+      },
+      {
+        "cargo_merchant_name": "Compañía Trasatlántica",
+        "cargo": [
+          {
+            "cargo_quantity": "25",
+            "cargo_unit": "bultos",
+            "cargo_commodity": "efectos varios"
+          }
+        ]
+      }
+    ],
+    "quarantine": true,
+    "forced_arrival": false,
+    "ship_amount": null,
+    "ship_origin_area": null,
+    "parsed_text": "De Liverpool, en 31 días, vapor español Vivina, capitán Ruiz, trip. 34, ton. 2879, con carbón, vino y efectos varios á J. Balcells y Cp. y Compañía Trasatlántica. Cuarentena por fiebre amarilla.",
+    "obs": "Cuarentena por fiebre amarilla en puerto de origen"
+  }
+]

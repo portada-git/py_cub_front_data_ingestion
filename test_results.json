@@ -1,0 +1,92 @@
+[
+  {
+    "test": "Health Check",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "CORS Configuration",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "User Login",
+    "success": true,
+    "details": "Token received: eyJhbGciOiJIUzI1NiIs..."
+  },
+  {
+    "test": "Token Validation",
+    "success": true,
+    "details": "Authenticated request: 200"
+  },
+  {
+    "test": "File Upload - Extraction Data",
+    "success": true,
+    "details": "Status: 200, Task ID: 399256ee-fef2-410e-bac6-f88cc0c56230"
+  },
+  {
+    "test": "Analysis - Pending Files Analysis",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Analysis - Known Entities Analysis",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Analysis - Daily Entries Analysis",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Analysis - Duplicates Analysis",
+    "success": false,
+    "details": "Status: 500"
+  },
+  {
+    "test": "Analysis - Missing Dates Analysis",
+    "success": false,
+    "details": "Status: 422"
+  },
+  {
+    "test": "Analysis - Storage Metadata Analysis",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Analysis - Process Metadata Analysis",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Analysis with Filters",
+    "success": false,
+    "details": "Daily entries: True, Missing dates: False, Duplicates: False"
+  },
+  {
+    "test": "Data Persistence",
+    "success": false,
+    "details": "Files: 0, Records: 5"
+  },
+  {
+    "test": "Error Handling - Invalid JSON",
+    "success": true,
+    "details": "Status: 400"
+  },
+  {
+    "test": "Error Handling - 404 Not Found",
+    "success": true,
+    "details": "Status: 404"
+  },
+  {
+    "test": "User Logout",
+    "success": true,
+    "details": "Status: 200"
+  },
+  {
+    "test": "Performance Test",
+    "success": true,
+    "details": "Response time: 2.20ms"
+  }
+]
