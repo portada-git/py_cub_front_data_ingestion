@@ -209,7 +209,6 @@ const IngestionView: React.FC = () => {
           publication={selectedType === 'extraction_data' ? (formData.publication && formData.publication.trim() ? formData.publication : undefined) : undefined}
           entityName={selectedType === 'known_entities' ? formData.entityName : undefined}
           maxConcurrentUploads={5}
-          maxRetries={3}
           onUploadComplete={handleUploadComplete}
           onFileProcessed={handleFileProcessed}
         />

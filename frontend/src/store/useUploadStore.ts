@@ -111,10 +111,25 @@ export const useUploadStore = create<UploadState>()(
       },
       
       clearCompletedTasks: () => {
+        // Instead of removing completed tasks, we'll keep them as history
+        // Only remove tasks older than 7 days to prevent unlimited growth
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        
         set((state) => ({
-          tasks: state.tasks.filter(task => 
-            !['completed', 'failed', 'cancelled'].includes(task.status)
-          )
+          tasks: state.tasks.filter(task => {
+            // Keep active tasks
+            if (['pending', 'uploading', 'processing'].includes(task.status)) {
+              return true;
+            }
+            
+            // Keep completed/failed tasks from last 7 days
+            if (task.endTime && task.endTime > sevenDaysAgo) {
+              return true;
+            }
+            
+            // Remove very old tasks
+            return false;
+          })
         }));
       },
       
@@ -180,7 +195,39 @@ export const useUploadStore = create<UploadState>()(
         );
       },
       
-      getStats: () => {
+      // Add new method for managing history
+      clearOldHistory: (maxAgeDays: number = 7) => {
+        const cutoffDate = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+        
+        set((state) => ({
+          tasks: state.tasks.filter(task => {
+            // Keep active tasks
+            if (['pending', 'uploading', 'processing'].includes(task.status)) {
+              return true;
+            }
+            
+            // Keep recent completed/failed tasks
+            if (task.endTime && task.endTime > cutoffDate) {
+              return true;
+            }
+            
+            // Remove old tasks
+            return false;
+          })
+        }));
+      },
+      
+      // Get processing history (completed and failed tasks)
+      getProcessingHistory: () => {
+        return get().tasks.filter(task => 
+          ['completed', 'failed', 'cancelled'].includes(task.status)
+        ).sort((a, b) => {
+          // Sort by end time, most recent first
+          const aTime = a.endTime?.getTime() || 0;
+          const bTime = b.endTime?.getTime() || 0;
+          return bTime - aTime;
+        });
+      },
         const tasks = get().tasks;
         const completedTasks = tasks.filter(t => t.status === 'completed');
         

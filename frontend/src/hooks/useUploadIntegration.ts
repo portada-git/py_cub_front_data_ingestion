@@ -102,42 +102,34 @@ export const useUploadIntegration = ({
     uploadFunction: (file: File, onProgress?: (progress: number) => void) => Promise<IngestionResponse>
   ) => {
     return async (file: File): Promise<string> => {
-      let uploadId: string | null = null;
+      // Register task immediately with a temporary taskId
+      const tempTaskId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const uploadId = registerUpload(file, tempTaskId);
       
       try {
-        // Start upload
+        // Start upload with progress tracking
         const result = await uploadFunction(file, (progress) => {
-          if (uploadId) {
-            updateUploadProgress(uploadId, progress);
-          }
+          updateUploadProgress(uploadId, progress);
         });
         
-        // Register task after getting taskId
-        uploadId = registerUpload(file, result.task_id);
-        
-        // Handle completion
-        handleUploadComplete(uploadId, result);
+        // Update with real taskId and completion status
+        updateTask(uploadId, {
+          taskId: result.task_id,
+          status: 'processing',
+          progress: 100,
+          message: 'Archivo subido, procesando...',
+          recordsProcessed: result.records_processed
+        });
         
         return uploadId;
         
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-        
-        if (uploadId) {
-          handleUploadError(uploadId, errorMessage);
-        } else {
-          // If we couldn't register the task, show notification directly
-          addNotification({
-            type: 'error',
-            title: 'Error en upload',
-            message: `${file.name}: ${errorMessage}`
-          });
-        }
-        
+        handleUploadError(uploadId, errorMessage);
         throw error;
       }
     };
-  }, [registerUpload, updateUploadProgress, handleUploadComplete, handleUploadError, addNotification]);
+  }, [registerUpload, updateUploadProgress, updateTask, handleUploadError]);
   
   return {
     registerUpload,

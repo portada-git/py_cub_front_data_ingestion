@@ -359,6 +359,55 @@ async def list_tasks(
     }
 
 
+@router.get("/tasks/global")
+async def list_global_tasks(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all ingestion tasks from all users (for global monitoring)"""
+    
+    # Convert status string to enum if provided
+    status_enum = None
+    if status == 'active':
+        # Get both processing and pending tasks
+        processing_tasks = task_service.list_tasks(
+            status=IngestionStatus.PROCESSING,
+            task_type=TaskType.INGESTION,
+            user_id=None  # All users
+        )
+        pending_tasks = task_service.list_tasks(
+            status=IngestionStatus.PENDING,
+            task_type=TaskType.INGESTION,
+            user_id=None  # All users
+        )
+        tasks = processing_tasks + pending_tasks
+    else:
+        if status:
+            try:
+                status_enum = IngestionStatus(status)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+        
+        tasks = task_service.list_tasks(
+            status=status_enum,
+            task_type=TaskType.INGESTION,
+            user_id=None  # All users
+        )
+    
+    # Convert to dict format with user info
+    task_dicts = []
+    for task in tasks:
+        task_dict = task.to_dict()
+        # Add user information for global view
+        task_dict['user_name'] = task.user_id  # Could be enhanced with actual user names
+        task_dicts.append(task_dict)
+    
+    return {
+        "data": task_dicts,
+        "total": len(task_dicts)
+    }
+
+
 @router.post("/cleanup")
 async def cleanup_files(
     max_age_hours: Optional[int] = 24,

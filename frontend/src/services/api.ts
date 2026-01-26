@@ -407,7 +407,7 @@ class ApiService {
 
   async getIngestionTasks(status?: string) {
     const params = status ? `?status=${status}` : '';
-    return this.request(`/ingestion/tasks${params}`);
+    return this.request(`/ingestion/tasks/global${params}`);
   }
 
   async cancelTask(taskId: string) {

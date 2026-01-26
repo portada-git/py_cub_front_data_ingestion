@@ -22,12 +22,11 @@ import { clsx } from 'clsx';
 import { apiService } from '../services/api';
 import { IngestionResponse } from '../types';
 import { useUploadIntegration } from '../hooks/useUploadIntegration';
-import LoadingSpinner from './LoadingSpinner';
 
 interface FileUploadItem {
   id: string;
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'paused';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   progress: number;
   result?: IngestionResponse;
   error?: string;
@@ -37,25 +36,12 @@ interface FileUploadItem {
   uploadId?: string; // ID en el store persistente
 }
 
-interface UnifiedUploadStats {
-  total: number;
-  pending: number;
-  uploading: number;
-  success: number;
-  error: number;
-  paused: number;
-  totalRecordsProcessed: number;
-  averageUploadTime: number;
-  estimatedTimeRemaining: number;
-}
-
 interface UnifiedFileUploadProps {
   ingestionType: 'extraction_data' | 'known_entities';
   publication?: string;
   entityName?: string;
   maxConcurrentUploads?: number;
-  maxRetries?: number;
-  onUploadComplete?: (stats: UnifiedUploadStats) => void;
+  onUploadComplete?: (stats: any) => void;
   onFileProcessed?: (file: FileUploadItem) => void;
 }
 
@@ -64,7 +50,6 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   publication,
   entityName,
   maxConcurrentUploads = 5,
-  maxRetries = 3,
   onUploadComplete,
   onFileProcessed
 }) => {
@@ -83,41 +68,18 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
     entityName
   });
 
-  // Calculate stats whenever files change
-  useEffect(() => {
-    // Calculate stats whenever files change
-    const newStats: UnifiedUploadStats = {
-      total: files.length,
-      pending: files.filter(f => f.status === 'pending').length,
-      uploading: files.filter(f => f.status === 'uploading').length,
-      success: files.filter(f => f.status === 'success').length,
-      error: files.filter(f => f.status === 'error').length,
-      paused: files.filter(f => f.status === 'paused').length,
-      totalRecordsProcessed: files.reduce((sum, f) => sum + (f.result?.records_processed || 0), 0),
-      averageUploadTime: 0,
-      estimatedTimeRemaining: 0
-    };
+  // Calculate basic stats
+  const stats = {
+    total: files.length,
+    pending: files.filter(f => f.status === 'pending').length,
+    success: files.filter(f => f.status === 'success').length,
+    error: files.filter(f => f.status === 'error').length
+  };
 
-    // Calculate average upload time
-    const completedFiles = files.filter(f => f.uploadStartTime && f.uploadEndTime);
-    if (completedFiles.length > 0) {
-      const totalTime = completedFiles.reduce((sum, f) => 
-        sum + (f.uploadEndTime! - f.uploadStartTime!), 0
-      );
-      newStats.averageUploadTime = totalTime / completedFiles.length;
-      
-      // Estimate remaining time
-      const remainingFiles = newStats.pending + newStats.uploading;
-      newStats.estimatedTimeRemaining = (remainingFiles * newStats.averageUploadTime) / maxConcurrentUploads;
-    }
-
-    setStats(newStats);
-  }, [files, maxConcurrentUploads]);
-
-  // Separate effect for completion callback to avoid infinite loops
+  // Auto-complete callback
   useEffect(() => {
     if (stats.total > 0 && (stats.success + stats.error) === stats.total) {
-      onUploadComplete?.(stats);
+      onUploadComplete?.(stats as any);
     }
   }, [stats.success, stats.error, stats.total, onUploadComplete]);
 
@@ -178,7 +140,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
     accept: {
       'application/json': ['.json']
     },
-    disabled: isProcessing && !isPaused
+    disabled: isProcessing
   });
 
   const uploadFile = async (fileItem: FileUploadItem): Promise<void> => {
@@ -271,7 +233,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   };
 
   const processQueue = useCallback(async () => {
-    if (isPaused || activeUploadsRef.current.size >= maxConcurrentUploads) {
+    if (activeUploadsRef.current.size >= maxConcurrentUploads) {
       return;
     }
 
@@ -285,82 +247,29 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
       activeUploadsRef.current.add(file.id);
       uploadFile(file);
     }
-  }, [files, isPaused, maxConcurrentUploads, uploadFile]);
+  }, [files, maxConcurrentUploads]);
 
   useEffect(() => {
-    if (isProcessing && !isPaused) {
+    if (isProcessing) {
       processQueue();
     }
-  }, [isProcessing, isPaused, files, processQueue]);
+  }, [isProcessing, files, processQueue]);
 
-  const startProcessing = () => {
+  const startProcessing = async () => {
     setIsProcessing(true);
-    setIsPaused(false);
+    // Navigate to processes dashboard after a short delay to let uploads start
+    setTimeout(() => {
+      navigate('/processes');
+    }, 1000);
   };
 
-  const pauseProcessing = () => {
-    setIsPaused(true);
+  const clearAll = () => {
+    setIsProcessing(false);
     // Cancel active uploads
     abortControllersRef.current.forEach(controller => controller.abort());
     abortControllersRef.current.clear();
     activeUploadsRef.current.clear();
-    
-    // Set uploading files back to pending
-    setFiles(prev => prev.map(f => 
-      f.status === 'uploading' ? { ...f, status: 'pending', progress: 0 } : f
-    ));
-  };
-
-  const resumeProcessing = () => {
-    setIsPaused(false);
-  };
-
-  const stopProcessing = () => {
-    setIsProcessing(false);
-    setIsPaused(false);
-    pauseProcessing();
-  };
-
-  const retryFailed = () => {
-    setFiles(prev => prev.map(f => 
-      f.status === 'error' && f.retryCount < maxRetries
-        ? { ...f, status: 'pending', error: undefined, retryCount: f.retryCount + 1 }
-        : f
-    ));
-  };
-
-  const removeFile = (id: string) => {
-    // Cancel upload if active
-    const controller = abortControllersRef.current.get(id);
-    if (controller) {
-      controller.abort();
-      abortControllersRef.current.delete(id);
-    }
-    activeUploadsRef.current.delete(id);
-    
-    setFiles(prev => prev.filter(f => f.id !== id));
-  };
-
-  const clearAll = () => {
-    stopProcessing();
     setFiles([]);
-  };
-
-  const formatTime = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-    return `${seconds}s`;
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 B';
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   };
 
   return (
@@ -373,7 +282,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
           {
             'drag-active': isDragActive,
             'border-gray-300': !isDragActive && !isProcessing,
-            'border-gray-200 bg-gray-100 cursor-not-allowed': isProcessing && !isPaused
+            'border-gray-200 bg-gray-100 cursor-not-allowed': isProcessing
           }
         )}
       >
@@ -405,255 +314,118 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
         </div>
       </div>
 
-      {/* Statistics Dashboard */}
-      {files.length > 0 && (
-        <div className="card-dark">
-          <div className="card-header-dark">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2" />
-              {t('ingestion.statistics')}
-            </h3>
-            <div className="flex space-x-2">
-              <Link
-                to="/processes"
-                className="btn btn-secondary"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Ver Dashboard Completo
-              </Link>
-              
-              {!isProcessing ? (
-                <button
-                  onClick={startProcessing}
-                  disabled={stats.pending === 0}
-                  className="btn btn-success"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {t('ingestion.startProcessing')}
-                </button>
-              ) : isPaused ? (
-                <button
-                  onClick={resumeProcessing}
-                  className="btn btn-primary"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {t('ingestion.resumeProcessing')}
-                </button>
-              ) : (
-                <button
-                  onClick={pauseProcessing}
-                  className="btn btn-warning"
-                >
-                  <Pause className="w-4 h-4 mr-2" />
-                  {t('ingestion.pauseProcessing')}
-                </button>
-              )}
+      {/* Simple File Summary and Process Button */}
+      {files.length > 0 && !isProcessing && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-gray-900">
+                  {files.length} archivo{files.length !== 1 ? 's' : ''} seleccionado{files.length !== 1 ? 's' : ''}
+                </span>
+              </div>
               
               {stats.error > 0 && (
-                <button
-                  onClick={retryFailed}
-                  className="btn btn-warning"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  {t('ingestion.retryErrors')}
-                </button>
+                <div className="flex items-center space-x-1 text-red-600">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-sm">{stats.error} con errores</span>
+                </div>
               )}
-              
+            </div>
+            
+            <div className="flex items-center space-x-3">
               <button
                 onClick={clearAll}
-                className="btn btn-danger"
+                className="text-gray-500 hover:text-gray-700 text-sm"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t('ingestion.clearAll')}
+                Limpiar
+              </button>
+              
+              <button
+                onClick={startProcessing}
+                disabled={stats.pending === 0}
+                className="btn btn-primary flex items-center"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Procesar Archivos
+                <ArrowRight className="w-4 h-4 ml-2" />
               </button>
             </div>
           </div>
-
-          {/* Progress Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            <div className="stat-card stat-card-primary">
-              <div className="stat-number stat-number-primary">{stats.total}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.total')}</div>
-            </div>
-            <div className="stat-card stat-card-warning">
-              <div className="stat-number stat-number-warning">{stats.pending}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.pending')}</div>
-            </div>
-            <div className="stat-card stat-card-info">
-              <div className="stat-number stat-number-info">{stats.uploading}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.uploading_status')}</div>
-            </div>
-            <div className="stat-card stat-card-success">
-              <div className="stat-number stat-number-success">{stats.success}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.success')}</div>
-            </div>
-            <div className="stat-card stat-card-error">
-              <div className="stat-number stat-number-error">{stats.error}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.errors')}</div>
-            </div>
-            <div className="stat-card stat-card-info">
-              <div className="stat-number stat-number-info">{stats.totalRecordsProcessed.toLocaleString()}</div>
-              <div className="stat-label text-slate-400">{t('ingestion.records')}</div>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-sm text-slate-400 mb-2">
-              <span>{t('ingestion.generalProgress')}</span>
-              <span>{Math.round((stats.success / stats.total) * 100)}%</span>
-            </div>
-            <div className="progress-bar bg-slate-800">
-              <div
-                className="progress-fill progress-fill-success"
-                style={{ width: `${(stats.success / stats.total) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Time Estimates */}
-          {stats.averageUploadTime > 0 && (
-            <div className="flex justify-between text-sm text-slate-400">
-              <span className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {t('ingestion.averageTime')}: {formatTime(stats.averageUploadTime)}
-              </span>
-              {stats.estimatedTimeRemaining > 0 && (
-                <span className="flex items-center">
-                  <Zap className="w-4 h-4 mr-1" />
-                  {t('ingestion.estimatedRemaining')}: {formatTime(stats.estimatedTimeRemaining)}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Global Monitoring Info */}
-      {files.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <BarChart3 className="w-5 h-5 text-blue-600 mt-0.5" />
-            </div>
-            <div className="ml-3">
-              <h4 className="text-sm font-medium text-blue-900">
-                Monitoreo Global Activo
-              </h4>
-              <p className="text-sm text-blue-700 mt-1">
-                Los archivos subidos se procesan en segundo plano y se pueden monitorear desde cualquier vista. 
-                Usa el <strong>monitor flotante</strong> (esquina inferior derecha) o el <strong>Dashboard de Procesos</strong> 
-                para seguimiento completo.
-              </p>
-              <div className="mt-2">
-                <Link
-                  to="/processes"
-                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Ver Dashboard de Procesos →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* File List */}
-      {files.length > 0 && (
-        <div className="table-container">
-          <div className="table-header">
-            <h3 className="font-semibold text-gray-900">
-              {t('ingestion.filesList')} ({files.length})
-            </h3>
-          </div>
           
-          <div className="max-h-96 overflow-y-auto">
+          {/* Simple file list */}
+          <div className="mt-4 space-y-2">
             {files.map((fileItem) => (
-              <div
-                key={fileItem.id}
-                className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1 min-w-0">
-                    <FileText className={clsx(
-                      'w-8 h-8 mr-3 flex-shrink-0',
-                      {
-                        'text-gray-400': fileItem.status === 'pending',
-                        'text-blue-500': fileItem.status === 'uploading',
-                        'text-green-500': fileItem.status === 'success',
-                        'text-red-500': fileItem.status === 'error',
-                        'text-yellow-500': fileItem.status === 'paused'
-                      }
-                    )} />
-                    
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {fileItem.file.name}
-                      </p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>{formatFileSize(fileItem.file.size)}</span>
-                        <span className={clsx(
-                          'px-2 py-1 rounded-full text-xs font-medium',
-                          {
-                            'bg-gray-100 text-gray-600': fileItem.status === 'pending',
-                            'bg-blue-100 text-blue-600': fileItem.status === 'uploading',
-                            'bg-green-100 text-green-600': fileItem.status === 'success',
-                            'bg-red-100 text-red-600': fileItem.status === 'error',
-                            'bg-yellow-100 text-yellow-600': fileItem.status === 'paused'
-                          }
-                        )}>
-                          {fileItem.status === 'pending' && t('ingestion.pending_status')}
-                          {fileItem.status === 'uploading' && t('ingestion.uploading_status')}
-                          {fileItem.status === 'success' && t('ingestion.success_status')}
-                          {fileItem.status === 'error' && t('ingestion.error_status')}
-                          {fileItem.status === 'paused' && 'Pausado'}
-                        </span>
-                        {fileItem.result?.records_processed && (
-                          <span>{fileItem.result.records_processed} {t('ingestion.records').toLowerCase()}</span>
-                        )}
-                      </div>
-                      
-                      {/* Progress Bar for uploading files */}
-                      {fileItem.status === 'uploading' && (
-                        <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${fileItem.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Error Message */}
-                      {fileItem.error && (
-                        <p className="mt-1 text-sm text-red-600">{fileItem.error}</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 ml-4">
-                    {fileItem.status === 'uploading' && (
-                      <LoadingSpinner size="sm" />
-                    )}
-                    {fileItem.status === 'success' && (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    )}
-                    {fileItem.status === 'error' && (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    )}
-                    
-                    <button
-                      onClick={() => removeFile(fileItem.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      title={t('ingestion.removeFile')}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+              <div key={fileItem.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-900">{fileItem.file.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(fileItem.file.size / 1024 / 1024).toFixed(1)} MB)
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  {fileItem.status === 'success' && (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  )}
+                  {fileItem.status === 'error' && (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )}
+                  <button
+                    onClick={() => setFiles(prev => prev.filter(f => f.id !== fileItem.id))}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Processing State */}
+      {isProcessing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-blue-900 font-medium">Procesando archivos...</span>
+          </div>
+          
+          <p className="text-blue-700 text-sm mb-4">
+            Los archivos se están procesando en segundo plano. 
+            Serás redirigido al dashboard de procesos para ver el progreso en tiempo real.
+          </p>
+          
+          <Link
+            to="/processes"
+            className="inline-flex items-center text-blue-600 hover:text-blue-500 font-medium"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Ver Dashboard de Procesos
+          </Link>
+        </div>
+      )}
+
+      {/* Global Monitoring Info - Only show when files are uploaded but not processing */}
+      {files.length > 0 && !isProcessing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <ExternalLink className="w-5 h-5 text-blue-600 mt-0.5" />
+            </div>
+            <div className="ml-3">
+              <h4 className="text-sm font-medium text-blue-900">
+                Monitoreo en Tiempo Real
+              </h4>
+              <p className="text-sm text-blue-700 mt-1">
+                Una vez que inicies el procesamiento, podrás monitorear el progreso en tiempo real 
+                desde el <strong>Dashboard de Procesos</strong>. Los archivos se procesan en segundo plano 
+                y puedes navegar libremente por la aplicación.
+              </p>
+            </div>
           </div>
         </div>
       )}

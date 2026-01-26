@@ -14,6 +14,7 @@ import {
 import { clsx } from 'clsx';
 import { useUploadStore, UploadTask } from '../store/useUploadStore';
 import { useNotificationStore } from '../store/useStore';
+import { useGlobalProcesses } from '../hooks/useGlobalProcesses';
 import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -47,14 +48,26 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
     clearCompletedTasks
   } = useUploadStore();
   
+  // Global processes sync
+  const { isGlobalSyncActive } = useGlobalProcesses();
+  
   const pollTimeoutRef = useRef<number>();
   const activeTasks = getActiveTasks();
   const stats = getStats();
   
   // Polling function
   const pollTaskStatus = useCallback(async (task: UploadTask) => {
+    // Skip polling for tasks with temporary taskIds
+    if (task.taskId.startsWith('temp_')) {
+      console.log(`[UploadMonitor] Skipping polling for temp task: ${task.fileName}`);
+      return;
+    }
+    
+    console.log(`[UploadMonitor] Polling task: ${task.fileName} (${task.taskId})`);
+    
     try {
       const response = await apiService.getIngestionStatus(task.taskId);
+      console.log(`[UploadMonitor] Poll response for ${task.fileName}:`, response);
       
       const newStatus = response.status === 'completed' ? 'completed' : 
                        response.status === 'failed' ? 'failed' : 
@@ -67,6 +80,8 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
         recordsProcessed: response.records_processed,
         estimatedTotal: response.estimated_total
       };
+      
+      console.log(`[UploadMonitor] Updating task ${task.fileName} with:`, updates);
       
       // Handle completion
       if (response.status === 'completed') {
@@ -92,7 +107,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
       updateTask(task.id, updates);
       
     } catch (error) {
-      console.error(`Error polling task ${task.id}:`, error);
+      console.error(`[UploadMonitor] Error polling task ${task.fileName}:`, error);
       
       // If we can't get status, mark as failed after several attempts
       if (task.retryCount >= 3) {
@@ -229,6 +244,11 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                 {stats.activeTasks} activos
               </span>
+              {isGlobalSyncActive && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  🌐 Global
+                </span>
+              )}
             </div>
             
             <div className="flex items-center space-x-1">
@@ -374,14 +394,21 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
         )}
         
         {/* Footer with polling status */}
-        {!minimized && isPolling && (
+        {!minimized && (isPolling || isGlobalSyncActive) && (
           <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
             <div className="flex items-center justify-between text-xs text-gray-600">
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span>Monitoreando procesos activos</span>
+                <span>
+                  {isGlobalSyncActive 
+                    ? "Sincronizando con todos los usuarios" 
+                    : "Monitoreando procesos activos"
+                  }
+                </span>
               </div>
-              <span>Cada {pollInterval / 1000}s</span>
+              <span>
+                {isGlobalSyncActive ? "Cada 5s" : `Cada ${pollInterval / 1000}s`}
+              </span>
             </div>
           </div>
         )}
