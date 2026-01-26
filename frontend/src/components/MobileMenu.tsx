@@ -83,7 +83,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
       href: '/analysis', 
       icon: BarChart3,
       children: [
-        { name: t('navigation.pendingFiles'), href: '/analysis/pending-files' },
         { name: t('navigation.missingDates'), href: '/analysis/missing-dates' },
         { name: t('navigation.duplicates'), href: '/analysis/duplicates' },
         { name: t('navigation.dailyEntries'), href: '/analysis/daily-entries' },

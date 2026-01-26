@@ -31,45 +31,55 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}) => {
 
       setIsLoading(true);
 
-      // Check if user is authenticated
-      if (!isAuthenticated) {
+      try {
+        // Check if user is authenticated
+        if (!isAuthenticated) {
+          navigate(redirectTo, { 
+            state: { from: location.pathname },
+            replace: true 
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Only verify authentication status if we haven't validated yet
+        // and avoid making API calls on every render
+        const isValid = await checkAuthStatus();
+        if (!isValid) {
+          navigate(redirectTo, { 
+            state: { from: location.pathname },
+            replace: true 
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Check permissions if required
+        if (requiredPermission && !hasPermission(requiredPermission)) {
+          setIsAuthorized(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Check role if required
+        if (requiredRole && !hasRole(requiredRole)) {
+          setIsAuthorized(false);
+          setIsLoading(false);
+          return;
+        }
+
+        hasValidatedRef.current = true;
+        setIsAuthorized(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Auth validation error:', error);
+        // On any error, redirect to login
         navigate(redirectTo, { 
           state: { from: location.pathname },
           replace: true 
         });
         setIsLoading(false);
-        return;
       }
-
-      // Only verify authentication status if we haven't validated yet
-      // and avoid making API calls on every render
-      const isValid = await checkAuthStatus();
-      if (!isValid) {
-        navigate(redirectTo, { 
-          state: { from: location.pathname },
-          replace: true 
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Check permissions if required
-      if (requiredPermission && !hasPermission(requiredPermission)) {
-        navigate('/unauthorized', { replace: true });
-        setIsLoading(false);
-        return;
-      }
-
-      // Check role if required
-      if (requiredRole && !hasRole(requiredRole)) {
-        navigate('/unauthorized', { replace: true });
-        setIsLoading(false);
-        return;
-      }
-
-      hasValidatedRef.current = true;
-      setIsAuthorized(true);
-      setIsLoading(false);
     };
 
     // Only validate if not already authenticated or if route changed
@@ -81,7 +91,7 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}) => {
       const hasRequiredRole = !requiredRole || hasRole(requiredRole);
       
       if (!hasRequiredPermission || !hasRequiredRole) {
-        navigate('/unauthorized', { replace: true });
+        setIsAuthorized(false);
         setIsLoading(false);
         return;
       }

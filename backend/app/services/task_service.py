@@ -65,6 +65,9 @@ class TaskInfo:
     
     def update_progress(self, percentage: float, step: str = "", completed_steps: int = None):
         """Update task progress"""
+        # Ensure percentage is not NaN
+        if isinstance(percentage, float) and percentage != percentage:  # NaN check
+            percentage = 0.0
         self.progress_percentage = max(0.0, min(100.0, percentage))
         if step:
             self.current_step = step

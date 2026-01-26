@@ -11,7 +11,8 @@ import { withErrorHandling } from '../utils/apiErrorHandler';
 import { DailyEntriesRequest } from '../types';
 import AnalysisCard from '../components/AnalysisCard';
 import QueryForm from '../components/QueryForm';
-import { SelectField, InputField } from '../components/FormField';
+import PublicationSelector from '../components/PublicationSelector';
+import { InputField } from '../components/FormField';
 import { ResultsCard, InfoMessage, EmptyState } from '../components/ResultsCard';
 import DataVisualization from '../components/DataVisualization';
 
@@ -31,16 +32,16 @@ const DailyEntriesView: React.FC = () => {
     endDate: ''
   });
 
-  const publications = [
-    { value: '', label: t('analysis.dailyEntries.selectPublication') },
-    { value: 'db', label: 'Diario de Barcelona (DB)' },
-    { value: 'dm', label: 'Diario de Madrid (DM)' },
-    { value: 'sm', label: 'Semanario de Málaga (SM)' }
-  ];
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, startDate: e.target.value }));
+  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, endDate: e.target.value }));
+  };
+
+  const handlePublicationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, publication: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,29 +88,36 @@ const DailyEntriesView: React.FC = () => {
           isLoading={isLoading}
           submitColor="blue"
         >
-          <SelectField
-            label={t('analysis.dailyEntries.publication')}
-            value={formData.publication}
-            onChange={handleInputChange}
-            options={publications}
-            required
-          />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('analysis.dailyEntries.publication')}
+              </label>
+              <PublicationSelector
+                value={formData.publication}
+                onChange={handlePublicationChange}
+                placeholder={t('analysis.dailyEntries.selectPublication')}
+                includeAll={false}
+                required
+              />
+            </div>
 
-          <div className="md:col-span-1" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField
+                label={t('analysis.dailyEntries.startDate')}
+                type="date"
+                value={formData.startDate}
+                onChange={handleStartDateChange}
+              />
 
-          <InputField
-            label={t('analysis.dailyEntries.startDate')}
-            type="date"
-            value={formData.startDate}
-            onChange={handleInputChange}
-          />
-
-          <InputField
-            label={t('analysis.dailyEntries.endDate')}
-            type="date"
-            value={formData.endDate}
-            onChange={handleInputChange}
-          />
+              <InputField
+                label={t('analysis.dailyEntries.endDate')}
+                type="date"
+                value={formData.endDate}
+                onChange={handleEndDateChange}
+              />
+            </div>
+          </div>
         </QueryForm>
       </AnalysisCard>
 

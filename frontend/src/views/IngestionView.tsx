@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useNotificationStore } from '../store/useStore';
 import UnifiedFileUpload from '../components/BulkFileUpload';
+import PublicationSelector from '../components/PublicationSelector';
 import clsx from 'clsx';
 
 type IngestionType = 'extraction_data' | 'known_entities';
@@ -147,19 +148,14 @@ const IngestionView: React.FC = () => {
               <label htmlFor="publication" className="block text-sm font-medium text-gray-700 mb-2">
                 {t('ingestion.publication')} (Opcional)
               </label>
-              <select
-                id="publication"
-                name="publication"
+              <PublicationSelector
                 value={formData.publication}
-                onChange={handleInputChange}
+                onChange={(value) => setFormData(prev => ({ ...prev, publication: value }))}
+                placeholder={t('ingestion.selectPublication') + ' (Automático)'}
+                includeAll={true}
+                allLabel={t('ingestion.selectPublication') + ' (Automático)'}
                 className="input"
-              >
-                <option value="">{t('ingestion.selectPublication')} (Automático)</option>
-                <option value="db">Diario de Barcelona (DB)</option>
-                <option value="dm">Diario de Madrid (DM)</option>
-                <option value="sm">Semanario de Málaga (SM)</option>
-                <option value="marina">Diario de la Marina</option>
-              </select>
+              />
               <p className="mt-1 text-xs text-gray-500">
                 Si no se selecciona, se extraerá automáticamente de los datos
               </p>

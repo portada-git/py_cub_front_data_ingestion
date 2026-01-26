@@ -11,7 +11,7 @@ import { withErrorHandling } from '../utils/apiErrorHandler';
 import { DuplicatesResponse } from '../types';
 import AnalysisCard from '../components/AnalysisCard';
 import QueryForm from '../components/QueryForm';
-import { SelectField } from '../components/FormField';
+import PublicationSelector from '../components/PublicationSelector';
 import { ResultsCard, InfoMessage, EmptyState } from '../components/ResultsCard';
 
 const DuplicatesView: React.FC = () => {
@@ -22,16 +22,8 @@ const DuplicatesView: React.FC = () => {
     publication: ''
   });
 
-  const publications = [
-    { value: '', label: t('analysis.duplicates.allPublications') },
-    { value: 'db', label: 'Diario de Barcelona' },
-    { value: 'dm', label: 'Diario Mercantil' },
-    { value: 'sm', label: 'Semanario Mercantil' },
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handlePublicationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, publication: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,14 +56,19 @@ const DuplicatesView: React.FC = () => {
           isLoading={isLoading}
           submitColor="orange"
         >
-          <SelectField
-            label={t('analysis.duplicates.publication')}
-            value={formData.publication}
-            onChange={handleInputChange}
-            options={publications}
-            required
-            className="md:col-span-2"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t('analysis.duplicates.publication')}
+            </label>
+            <PublicationSelector
+              value={formData.publication}
+              onChange={handlePublicationChange}
+              placeholder={t('analysis.duplicates.allPublications')}
+              includeAll={true}
+              allLabel={t('analysis.duplicates.allPublications')}
+              className="md:col-span-2"
+            />
+          </div>
         </QueryForm>
       </AnalysisCard>
 

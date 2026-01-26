@@ -10,6 +10,7 @@ import { apiService } from '../services/api';
 import { withErrorHandling } from '../utils/apiErrorHandler';
 import AnalysisCard from '../components/AnalysisCard';
 import QueryForm from '../components/QueryForm';
+import PublicationSelector from '../components/PublicationSelector';
 import { SelectField, InputField } from '../components/FormField';
 import { ResultsCard, InfoMessage, EmptyState } from '../components/ResultsCard';
 
@@ -37,21 +38,25 @@ const MissingDatesView: React.FC = () => {
     endDate: ''
   });
 
-  const publications = [
-    { value: '', label: t('analysis.missingDates.selectPublication') },
-    { value: 'db', label: 'Diario de Barcelona (DB)' },
-    { value: 'dm', label: 'Diario de Madrid (DM)' },
-    { value: 'sm', label: 'Semanario de Málaga (SM)' }
-  ];
-
   const queryMethods = [
     { value: 'date_range', label: t('analysis.missingDates.dateRange') },
     { value: 'file_list', label: t('analysis.missingDates.fileList') }
   ];
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleQueryMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, queryMethod: e.target.value }));
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, startDate: e.target.value }));
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, endDate: e.target.value }));
+  };
+
+  const handlePublicationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, publication: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,40 +93,47 @@ const MissingDatesView: React.FC = () => {
           isLoading={isLoading}
           submitColor="blue"
         >
-          <SelectField
-            label={t('analysis.missingDates.publication')}
-            value={formData.publication}
-            onChange={handleInputChange}
-            options={publications}
-            required
-          />
-
-          <SelectField
-            label={t('analysis.missingDates.queryMethod')}
-            value={formData.queryMethod}
-            onChange={handleInputChange}
-            options={queryMethods}
-          />
-
-          {formData.queryMethod === 'date_range' && (
-            <>
-              <InputField
-                label={t('analysis.missingDates.startDate')}
-                description={t('analysis.missingDates.startDateOptional')}
-                type="date"
-                value={formData.startDate}
-                onChange={handleInputChange}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('analysis.missingDates.publication')}
+              </label>
+              <PublicationSelector
+                value={formData.publication}
+                onChange={handlePublicationChange}
+                placeholder={t('analysis.missingDates.selectPublication')}
+                includeAll={false}
+                required
               />
+            </div>
 
-              <InputField
-                label={t('analysis.missingDates.endDate')}
-                description={t('analysis.missingDates.endDateOptional')}
-                type="date"
-                value={formData.endDate}
-                onChange={handleInputChange}
-              />
-            </>
-          )}
+            <SelectField
+              label={t('analysis.missingDates.queryMethod')}
+              value={formData.queryMethod}
+              onChange={handleQueryMethodChange}
+              options={queryMethods}
+            />
+
+            {formData.queryMethod === 'date_range' && (
+              <>
+                <InputField
+                  label={t('analysis.missingDates.startDate')}
+                  description={t('analysis.missingDates.startDateOptional')}
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleStartDateChange}
+                />
+
+                <InputField
+                  label={t('analysis.missingDates.endDate')}
+                  description={t('analysis.missingDates.endDateOptional')}
+                  type="date"
+                  value={formData.endDate}
+                  onChange={handleEndDateChange}
+                />
+              </>
+            )}
+          </div>
         </QueryForm>
       </AnalysisCard>
 

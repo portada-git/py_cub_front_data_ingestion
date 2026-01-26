@@ -19,7 +19,6 @@ import { apiService } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface DashboardStats {
-  pendingFiles: number;
   recentTasks: number;
   totalEntities: number;
   systemStatus: 'healthy' | 'warning' | 'error';
@@ -28,7 +27,6 @@ interface DashboardStats {
 const DashboardView: React.FC = () => {
   const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats>({
-    pendingFiles: 0,
     recentTasks: 0,
     totalEntities: 0,
     systemStatus: 'healthy',
@@ -46,14 +44,12 @@ const DashboardView: React.FC = () => {
       setError(null);
 
       // Load dashboard statistics
-      const [healthCheck, pendingFiles, knownEntities] = await Promise.all([
+      const [healthCheck, knownEntities] = await Promise.all([
         apiService.healthCheck().catch(() => ({ status: 'error' })),
-        apiService.getPendingFiles().catch(() => ({ total_files: 0 })),
         apiService.getKnownEntities().catch(() => ({ total_entities: 0 })),
       ]);
 
       setStats({
-        pendingFiles: pendingFiles.total_files || 0,
         recentTasks: 0, // This would come from a recent tasks endpoint
         totalEntities: knownEntities.total_entities || 0,
         systemStatus: healthCheck.status === 'healthy' ? 'healthy' : 'warning',
@@ -134,19 +130,6 @@ const DashboardView: React.FC = () => {
             <div className="ml-3 flex-1">
               <p className="text-sm font-medium text-gray-900">Estado del Sistema</p>
               <p className="text-xs text-gray-600">{getStatusText(stats.systemStatus)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Files */}
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <FileText className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Archivos Pendientes</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.pendingFiles}</p>
             </div>
           </div>
         </div>

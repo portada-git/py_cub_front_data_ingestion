@@ -9,6 +9,7 @@ import { useNotificationStore } from '../../store/useStore';
 import { apiService } from '../../services/api';
 import DataTable, { TableColumn } from '../results/DataTable';
 import DateRangePicker from '../forms/DateRangePicker';
+import PublicationSelector from '../PublicationSelector';
 import LoadingSpinner from '../LoadingSpinner';
 import { MissingDateEntry } from '../../types';
 
@@ -341,17 +342,13 @@ const MissingDatesAnalysis: React.FC = () => {
               <label htmlFor="publication" className="block text-sm font-medium text-gray-700 mb-2">
                 Publicación (opcional)
               </label>
-              <select
-                id="publication"
+              <PublicationSelector
                 value={dateRange.publication}
-                onChange={(e) => setDateRange(prev => ({ ...prev, publication: e.target.value }))}
-                className="input"
-              >
-                <option value="">Todas las publicaciones</option>
-                <option value="db">Diario de Barcelona (DB)</option>
-                <option value="dm">Diario de Madrid (DM)</option>
-                <option value="sm">Semanario de Málaga (SM)</option>
-              </select>
+                onChange={(value) => setDateRange(prev => ({ ...prev, publication: value }))}
+                placeholder="Todas las publicaciones"
+                includeAll={true}
+                allLabel="Todas las publicaciones"
+              />
             </div>
             
             <div className="flex items-end">

@@ -45,6 +45,7 @@ interface UploadState {
   updateTask: (id: string, updates: Partial<UploadTask>) => void;
   removeTask: (id: string) => void;
   clearCompletedTasks: () => void;
+  clearOldHistory: (maxAgeDays?: number) => void;
   clearAllTasks: () => void;
   retryTask: (id: string) => void;
   cancelTask: (id: string) => void;
@@ -55,6 +56,7 @@ interface UploadState {
   getActiveTasks: () => UploadTask[];
   getCompletedTasks: () => UploadTask[];
   getFailedTasks: () => UploadTask[];
+  getProcessingHistory: () => UploadTask[];
   getStats: () => UploadStats;
   
   // Polling control
@@ -71,7 +73,7 @@ export const useUploadStore = create<UploadState>()(
       pollInterval: 3000, // 3 seconds
       
       addTask: (taskData) => {
-        const id = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const id = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const task: UploadTask = {
           ...taskData,
           id,
@@ -94,6 +96,11 @@ export const useUploadStore = create<UploadState>()(
               ? { 
                   ...task, 
                   ...updates,
+                  // Ensure numeric values are not NaN
+                  progress: typeof updates.progress === 'number' && !isNaN(updates.progress) ? updates.progress : task.progress,
+                  recordsProcessed: typeof updates.recordsProcessed === 'number' && !isNaN(updates.recordsProcessed) ? updates.recordsProcessed : task.recordsProcessed,
+                  estimatedTotal: typeof updates.estimatedTotal === 'number' && !isNaN(updates.estimatedTotal) ? updates.estimatedTotal : task.estimatedTotal,
+                  retryCount: typeof updates.retryCount === 'number' && !isNaN(updates.retryCount) ? updates.retryCount : task.retryCount,
                   // Set end time if status is final
                   endTime: ['completed', 'failed', 'cancelled'].includes(updates.status || task.status) 
                     ? updates.endTime || new Date() 
@@ -228,27 +235,39 @@ export const useUploadStore = create<UploadState>()(
           return bTime - aTime;
         });
       },
+      
+      getStats: () => {
         const tasks = get().tasks;
         const completedTasks = tasks.filter(t => t.status === 'completed');
         
         let averageProcessingTime = 0;
         if (completedTasks.length > 0) {
-          const totalTime = completedTasks.reduce((sum, task) => {
-            if (task.startTime && task.endTime) {
-              return sum + (task.endTime.getTime() - task.startTime.getTime());
-            }
-            return sum;
-          }, 0);
-          averageProcessingTime = totalTime / completedTasks.length;
+          const validCompletedTasks = completedTasks.filter(task => 
+            task.startTime && task.endTime && 
+            !isNaN(task.startTime.getTime()) && !isNaN(task.endTime.getTime())
+          );
+          
+          if (validCompletedTasks.length > 0) {
+            const totalTime = validCompletedTasks.reduce((sum, task) => {
+              return sum + (task.endTime!.getTime() - task.startTime.getTime());
+            }, 0);
+            averageProcessingTime = totalTime / validCompletedTasks.length;
+          }
         }
+        
+        // Ensure we don't return NaN values
+        const totalRecordsProcessed = tasks.reduce((sum, t) => {
+          const records = t.recordsProcessed || 0;
+          return sum + (isNaN(records) ? 0 : records);
+        }, 0);
         
         return {
           totalTasks: tasks.length,
           activeTasks: tasks.filter(t => ['pending', 'uploading', 'processing'].includes(t.status)).length,
           completedTasks: completedTasks.length,
           failedTasks: tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length,
-          totalRecordsProcessed: tasks.reduce((sum, t) => sum + (t.recordsProcessed || 0), 0),
-          averageProcessingTime
+          totalRecordsProcessed: isNaN(totalRecordsProcessed) ? 0 : totalRecordsProcessed,
+          averageProcessingTime: isNaN(averageProcessingTime) ? 0 : averageProcessingTime
         };
       },
       

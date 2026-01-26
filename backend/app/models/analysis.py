@@ -234,19 +234,6 @@ class ProcessMetadataResponse(BaseModel):
 
 
 # Basic Analysis Models
-class PendingFilesRequest(BaseModel):
-    """Request model for pending files analysis"""
-    publication: Optional[str] = Field(None, description="Filter by publication")
-    username: Optional[str] = Field(None, description="Filter by username")
-
-
-class PendingFilesResponse(BaseModel):
-    """Response model for pending files analysis"""
-    pending_files: List[Dict[str, Any]] = Field(..., description="List of pending files")
-    total_files: int = Field(..., description="Total number of pending files")
-    filters_applied: Dict[str, Any] = Field(..., description="Filters that were applied")
-
-
 class KnownEntitiesResponse(BaseModel):
     """Response model for known entities query"""
     entities: List[Dict[str, Any]] = Field(..., description="List of known entities")

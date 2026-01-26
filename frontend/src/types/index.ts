@@ -147,18 +147,6 @@ export interface ProcessRecord {
   metadata: Record<string, any>;
 }
 
-export interface PendingFilesResponse {
-  pending_files: Array<{
-    filename: string;
-    size: number;
-    created_at: string;
-    publication: string;
-    username: string;
-  }>;
-  total_files: number;
-  filters_applied: Record<string, any>;
-}
-
 export interface KnownEntitiesResponse {
   entities: Array<{
     name: string;
@@ -187,4 +175,15 @@ export interface DailyEntriesResponse {
     start_date: string;
     end_date: string;
   };
+}
+
+export interface Publication {
+  code: string;
+  name: string;
+  full_name: string;
+}
+
+export interface PublicationsResponse {
+  publications: Publication[];
+  total: number;
 }

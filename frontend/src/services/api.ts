@@ -12,10 +12,10 @@ import {
   MissingDatesResponse,
   DuplicatesRequest,
   DuplicatesResponse,
-  PendingFilesResponse,
   KnownEntitiesResponse,
   DailyEntriesRequest,
-  DailyEntriesResponse
+  DailyEntriesResponse,
+  PublicationsResponse
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
@@ -421,13 +421,8 @@ class ApiService {
   }
 
   // Analysis - Basic Queries
-  async getPendingFiles(publication?: string, username?: string): Promise<PendingFilesResponse> {
-    const params = new URLSearchParams();
-    if (publication) params.append('publication', publication);
-    if (username) params.append('username', username);
-    
-    const queryString = params.toString();
-    return this.request<PendingFilesResponse>(`/analysis/pending-files${queryString ? '?' + queryString : ''}`);
+  async getPublications(): Promise<PublicationsResponse> {
+    return this.request('/analysis/publications');
   }
 
   async getKnownEntities(): Promise<KnownEntitiesResponse> {

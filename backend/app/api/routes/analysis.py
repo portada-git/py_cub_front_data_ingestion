@@ -15,7 +15,7 @@ from app.models.analysis import (
     DuplicatesRequest, DuplicatesResponse, DuplicateDetailsResponse,
     StorageMetadataRequest, StorageMetadataResponse, FieldLineageResponse,
     ProcessMetadataRequest, ProcessMetadataResponse,
-    PendingFilesRequest, PendingFilesResponse, KnownEntitiesResponse,
+    KnownEntitiesResponse,
     DailyEntriesRequest, DailyEntriesResponse
 )
 from app.services.portada_service import portada_service
@@ -27,65 +27,44 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/pending-files", response_model=PendingFilesResponse)
-async def get_pending_files(
-    publication: Optional[str] = None,
-    username: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get count of pending files in ingestion folder
-    
-    Filters by publication and username if provided.
-    """
+@router.get("/publications", response_model=dict)
+async def get_publications(current_user: dict = Depends(get_current_user)):
+    """Get list of available publications from processed data"""
     try:
-        logger.info(f"Getting pending files - publication: {publication}, username: {username}")
+        logger.info("Getting available publications")
         
-        pending_files = []
-        total_files = 0
-        
-        # Scan ingestion folder for pending files
-        if os.path.exists(settings.INGESTION_FOLDER):
-            for filename in os.listdir(settings.INGESTION_FOLDER):
-                file_path = os.path.join(settings.INGESTION_FOLDER, filename)
-                if os.path.isfile(file_path):
-                    # Extract metadata from filename or file content
-                    file_info = {
-                        "filename": filename,
-                        "size": os.path.getsize(file_path),
-                        "created_at": datetime.fromtimestamp(os.path.getctime(file_path)).isoformat(),
-                        "publication": "unknown",  # Will be extracted from file content or filename
-                        "username": "system"  # Will be extracted from file metadata
-                    }
-                    
-                    # Try to extract publication from filename (e.g., db_2024_01_15.json)
-                    filename_parts = filename.lower().split('_')
-                    if len(filename_parts) > 0:
-                        potential_pub = filename_parts[0]
-                        if potential_pub in ['db', 'dm', 'sm']:
-                            file_info["publication"] = potential_pub
-                    
-                    # Apply filters
-                    if publication and file_info["publication"] != publication:
-                        continue
-                    if username and file_info["username"] != username:
-                        continue
-                    
-                    pending_files.append(file_info)
-                    total_files += 1
-        
-        return PendingFilesResponse(
-            pending_files=pending_files,
-            total_files=total_files,
-            filters_applied={
-                "publication": publication,
-                "username": username
+        # Try to get publications from PortAda data
+        try:
+            # This would query the actual data to get unique publications
+            # For now, return the known publications based on the system
+            publications = [
+                {"code": "db", "name": "Diario de Barcelona", "full_name": "Diario de Barcelona"},
+                {"code": "dm", "name": "Diario de la Marina", "full_name": "Diario de la Marina"},
+                {"code": "sm", "name": "Semanario Mercantil", "full_name": "Semanario Mercantil"},
+                {"code": "lp", "name": "La Prensa", "full_name": "La Prensa"},
+                {"code": "el", "name": "El Liberal", "full_name": "El Liberal"}
+            ]
+            
+            return {
+                "publications": publications,
+                "total": len(publications)
             }
-        )
-        
+            
+        except Exception as e:
+            logger.warning(f"Could not get publications from PortAda: {e}")
+            # Return default publications
+            return {
+                "publications": [
+                    {"code": "db", "name": "Diario de Barcelona", "full_name": "Diario de Barcelona"},
+                    {"code": "dm", "name": "Diario de la Marina", "full_name": "Diario de la Marina"},
+                    {"code": "sm", "name": "Semanario Mercantil", "full_name": "Semanario Mercantil"}
+                ],
+                "total": 3
+            }
+            
     except Exception as e:
-        logger.error(f"Error getting pending files: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving pending files: {str(e)}")
+        logger.error(f"Error getting publications: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving publications: {str(e)}")
 
 
 @router.get("/known-entities", response_model=KnownEntitiesResponse)

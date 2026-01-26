@@ -11,6 +11,8 @@ from datetime import datetime
 import asyncio
 import aiofiles
 import logging
+from concurrent.futures import ThreadPoolExecutor
+import functools
 
 # PortAda library imports
 try:
@@ -83,6 +85,12 @@ class PortAdaService:
         self._layer_entities = None
         self._metadata_manager = None
         self.logger = logging.getLogger(__name__)
+        
+        # Thread pool for CPU-intensive operations
+        self._thread_pool = ThreadPoolExecutor(
+            max_workers=2,  # Limit concurrent PortAda operations
+            thread_name_prefix="portada"
+        )
     
     def _get_builder(self) -> PortadaBuilder:
         """Get or create PortAda builder instance"""
@@ -139,6 +147,14 @@ class PortAdaService:
                 raise wrap_portada_error(e, "metadata manager initialization")
         return self._metadata_manager
 
+    def _run_in_thread(self, func, *args, **kwargs):
+        """Run a potentially blocking function in a thread pool"""
+        loop = asyncio.get_event_loop()
+        return loop.run_in_executor(
+            self._thread_pool,
+            functools.partial(func, *args, **kwargs)
+        )
+    
     def _handle_ingestion_error(self, e: Exception, operation: str) -> Dict[str, Any]:
         """
         Handle ingestion errors and return standardized error response
@@ -162,6 +178,11 @@ class PortAdaService:
             "message": error_msg
         }
 
+    def _perform_ingestion_sync(self, destination_path: str, temp_file_path: str) -> None:
+        """Synchronous ingestion operation to run in thread pool"""
+        layer_news = self._get_news_layer()
+        layer_news.ingest(destination_path, local_path=temp_file_path, user="api_user")
+    
     async def ingest_extraction_data(self, file_path: str, newspaper: Optional[str] = None, data_path_delta_lake: str = "ship_entries") -> Dict[str, Any]:
         """
         Ingest extraction data from JSON file
@@ -232,10 +253,10 @@ class PortAdaService:
                 # Use the data_path_delta_lake directly - the library handles publication organization
                 destination_path = data_path_delta_lake
                 
-                # Perform ingestion using PortAda library with user information
+                # Perform ingestion using PortAda library in thread pool to avoid blocking
                 # The library will automatically organize by publication_name, date, and edition
                 # Note: ingest signature is (*container_path, local_path: str, user: str)
-                layer_news.ingest(destination_path, local_path=temp_file_path, user="api_user")
+                await self._run_in_thread(self._perform_ingestion_sync, destination_path, temp_file_path)
                 
                 self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
                 return {
@@ -258,6 +279,14 @@ class PortAdaService:
             self.logger.error(f"Error during extraction data ingestion: {e}")
             return self._handle_ingestion_error(e, "extraction data ingestion")
     
+    def _perform_entity_ingestion_sync(self, entity_name: str, file_path: str) -> tuple:
+        """Synchronous entity ingestion operation to run in thread pool"""
+        layer_entities = self._get_entities_layer()
+        data, dest = layer_entities.copy_ingested_entities(entity=entity_name, local_path=file_path)
+        odata = {"source_path": dest, "data": data}
+        layer_entities.save_raw_entities(entity=entity_name, data=odata)
+        return data, dest
+    
     async def ingest_known_entities(self, file_path: str, entity_name: str = "known_entities") -> Dict[str, Any]:
         """
         Ingest known entities from YAML file
@@ -279,10 +308,8 @@ class PortAdaService:
                 data = yaml.safe_load(content)
                 entity_count = len(data) if isinstance(data, (list, dict)) else 1
             
-            # Perform entity ingestion using PortAda library
-            data, dest = layer_entities.copy_ingested_entities(entity=entity_name, local_path=file_path)
-            odata = {"source_path": dest, "data": data}
-            layer_entities.save_raw_entities(entity=entity_name, data=odata)
+            # Perform entity ingestion using PortAda library in thread pool
+            data, dest = await self._run_in_thread(self._perform_entity_ingestion_sync, entity_name, file_path)
             
             self.logger.info(f"Successfully ingested {entity_count} entities as {entity_name}")
             return {
@@ -297,6 +324,11 @@ class PortAdaService:
         except Exception as e:
             self.logger.error(f"Error during known entities ingestion: {e}")
             return self._handle_ingestion_error(e, "known entities ingestion")
+    
+    def _get_missing_dates_sync(self, data_path: str, publication_name: str) -> list:
+        """Synchronous missing dates operation to run in thread pool"""
+        layer_news = self._get_news_layer()
+        return layer_news.get_missing_dates_from_a_newspaper(data_path, publication_name=publication_name)
     
     async def get_missing_dates(
         self, 
@@ -321,12 +353,10 @@ class PortAdaService:
         """
         try:
             self.logger.info(f"Getting missing dates for publication: {publication_name}")
-            layer_news = self._get_news_layer()
             
-            # Get missing dates using PortAda library
-            missing_dates_result = layer_news.get_missing_dates_from_a_newspaper(
-                data_path,
-                publication_name=publication_name
+            # Get missing dates using PortAda library in thread pool
+            missing_dates_result = await self._run_in_thread(
+                self._get_missing_dates_sync, data_path, publication_name
             )
             
             # Convert results to our model format
@@ -347,6 +377,24 @@ class PortAdaService:
             self.logger.error(error_msg)
             raise wrap_portada_error(e, f"missing dates query for {publication_name}")
 
+    def _get_duplicates_metadata_sync(self, publication: Optional[str], start_date: Optional[str], end_date: Optional[str]) -> list:
+        """Synchronous duplicates metadata operation to run in thread pool"""
+        metadata = self._get_metadata_manager()
+        
+        # Read duplicates log from PortAda
+        df_dup = metadata.read_log("duplicates_log")
+        
+        # Apply filters
+        if publication:
+            df_dup = df_dup.filter(f"lower(publication)='{publication.lower()}'")
+        if start_date:
+            df_dup = df_dup.filter(f"date >= '{start_date}'")
+        if end_date:
+            df_dup = df_dup.filter(f"date <= '{end_date}'")
+        
+        # Collect results
+        return df_dup.collect()
+    
     async def get_duplicates_metadata(
         self,
         user_responsible: Optional[str] = None,
@@ -362,21 +410,11 @@ class PortAdaService:
         """
         try:
             self.logger.info("Getting duplicates metadata")
-            metadata = self._get_metadata_manager()
             
-            # Read duplicates log from PortAda
-            df_dup = metadata.read_log("duplicates_log")
-            
-            # Apply filters
-            if publication:
-                df_dup = df_dup.filter(f"lower(publication)='{publication.lower()}'")
-            if start_date:
-                df_dup = df_dup.filter(f"date >= '{start_date}'")
-            if end_date:
-                df_dup = df_dup.filter(f"date <= '{end_date}'")
-            
-            # Collect results
-            results = df_dup.collect()
+            # Get duplicates metadata in thread pool
+            results = await self._run_in_thread(
+                self._get_duplicates_metadata_sync, publication, start_date, end_date
+            )
             
             # Convert to our model format
             duplicates = []

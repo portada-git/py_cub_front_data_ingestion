@@ -307,12 +307,22 @@ async def get_ingestion_status(
     records_processed = 0
     if task_info.result and "records_processed" in task_info.result:
         records_processed = task_info.result["records_processed"]
+        # Ensure it's not NaN
+        if isinstance(records_processed, (int, float)) and not (isinstance(records_processed, float) and records_processed != records_processed):
+            records_processed = int(records_processed)
+        else:
+            records_processed = 0
+    
+    # Ensure progress_percentage is not NaN
+    progress_percentage = task_info.progress_percentage
+    if isinstance(progress_percentage, float) and progress_percentage != progress_percentage:  # NaN check
+        progress_percentage = 0.0
     
     return IngestionStatusResponse(
         task_id=task_id,
         status=task_info.status,
         message=task_info.error_message or task_info.current_step or task_info.description,
-        progress_percentage=task_info.progress_percentage,
+        progress_percentage=progress_percentage,
         records_processed=records_processed,
         started_at=task_info.started_at or task_info.created_at,
         updated_at=task_info.updated_at or task_info.created_at

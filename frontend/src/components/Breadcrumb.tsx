@@ -44,9 +44,6 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
         case 'analysis':
           label = 'Análisis';
           break;
-        case 'pending-files':
-          label = 'Archivos Pendientes';
-          break;
         case 'missing-dates':
           label = 'Fechas Faltantes';
           break;
