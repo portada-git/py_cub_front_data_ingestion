@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SECRET_KEY=dev-secret-key
+      - PORTADA_BASE_PATH=/app/data
+      - PORTADA_APP_NAME=PortAdaAPI
+      - PORTADA_PROJECT_NAME=portada_ingestion
+      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - ./backend:/app
+      - portada_data:/app/data
+    networks:
+      - portada_network
+    restart: unless-stopped
+    command: ["uv", "run", "python", "main.py"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - portada_network
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: ["bun", "run", "dev", "--host", "0.0.0.0"]
+
+volumes:
+  portada_data:
+    driver: local
+
+networks:
+  portada_network:
+    driver: bridge
