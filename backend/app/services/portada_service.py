@@ -412,10 +412,17 @@ class PortAdaService:
             # Check if duplicates log exists before trying to read it
             try:
                 # Read duplicates log from PortAda
+                self.logger.info("Attempting to read duplicates_log...")
                 df_dup = metadata.read_log("duplicates_log")
+                self.logger.info(f"Successfully read duplicates_log, type: {type(df_dup)}")
             except Exception as e:
+                # Log the full error for debugging
+                self.logger.error(f"Error reading duplicates_log: {type(e).__name__}: {str(e)}")
+                import traceback
+                self.logger.error(f"Traceback: {traceback.format_exc()}")
+                
                 # If the log doesn't exist, return empty list
-                if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
+                if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e) or "path" in str(e).lower():
                     self.logger.info("Duplicates log not found - no data has been processed yet")
                     return []
                 else:
@@ -435,7 +442,9 @@ class PortAdaService:
             
         except Exception as e:
             # If any error occurs, log it and return empty list for graceful degradation
-            self.logger.warning(f"Error reading duplicates metadata: {str(e)}")
+            self.logger.error(f"Error in _get_duplicates_metadata_sync: {type(e).__name__}: {str(e)}")
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             return []
     
     async def get_duplicates_metadata(
