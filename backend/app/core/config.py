@@ -19,11 +19,9 @@ STORAGE_DIR = STORAGE_DIR.resolve()
 class DatabaseSettings(BaseSettings):
     """Database configuration settings"""
     
-    # Database Configuration
+    # Database Configuration - Simple SQLite by default
     DATABASE_URL: str = f"sqlite+aiosqlite:///{STORAGE_DIR}/portada.db"
     DATABASE_ECHO: bool = False  # Set to True for SQL query logging
-    DATABASE_POOL_SIZE: int = 5
-    DATABASE_MAX_OVERFLOW: int = 10
     
     # Session Configuration
     SESSION_DURATION_DAYS: int = 30
@@ -32,6 +30,7 @@ class DatabaseSettings(BaseSettings):
     class Config:
         env_prefix = "DB_"
         env_file = ".env"
+        extra = "ignore"  # Ignore extra fields
 
 
 class StorageSettings(BaseSettings):
@@ -51,6 +50,7 @@ class StorageSettings(BaseSettings):
     class Config:
         env_prefix = "STORAGE_"
         env_file = ".env"
+        extra = "ignore"  # Ignore extra fields
 
 
 class Settings(BaseSettings):
