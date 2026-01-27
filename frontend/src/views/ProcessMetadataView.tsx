@@ -59,7 +59,7 @@ const ProcessMetadataView: React.FC = () => {
     });
 
     if (result) {
-      setResults({} as ProcessMetadataResponse);
+      setResults(result as ProcessMetadataResponse);
     }
     
     setIsLoading(false);
@@ -94,6 +94,7 @@ const ProcessMetadataView: React.FC = () => {
           <SelectField
             label={t('analysis.processMetadata.processName')}
             description={t('analysis.processMetadata.processNameDesc')}
+            name="processName"
             value={formData.processName}
             onChange={handleInputChange}
             options={processOptions}
@@ -105,7 +106,7 @@ const ProcessMetadataView: React.FC = () => {
       {/* Results */}
       {results && (
         <ResultsCard title={t('analysis.processMetadata.results')}>
-          {results.processes.length === 0 ? (
+          {!results.processes || results.processes.length === 0 ? (
             <EmptyState message={t('analysis.processMetadata.noResults')} />
           ) : (
             <div className="space-y-4">

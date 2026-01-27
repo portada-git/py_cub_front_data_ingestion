@@ -157,6 +157,7 @@ const MissingDatesView: React.FC = () => {
 
             <SelectField
               label={t('analysis.missingDates.queryMethod')}
+              name="queryMethod"
               value={formData.queryMethod}
               onChange={handleQueryMethodChange}
               options={queryMethods}
@@ -167,6 +168,7 @@ const MissingDatesView: React.FC = () => {
                 <InputField
                   label={t('analysis.missingDates.startDate')}
                   description={t('analysis.missingDates.startDateOptional')}
+                  name="startDate"
                   type="date"
                   value={formData.startDate}
                   onChange={handleStartDateChange}
@@ -175,6 +177,7 @@ const MissingDatesView: React.FC = () => {
                 <InputField
                   label={t('analysis.missingDates.endDate')}
                   description={t('analysis.missingDates.endDateOptional')}
+                  name="endDate"
                   type="date"
                   value={formData.endDate}
                   onChange={handleEndDateChange}

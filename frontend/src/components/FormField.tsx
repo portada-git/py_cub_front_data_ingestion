@@ -16,6 +16,7 @@ interface FormFieldProps {
 interface SelectFieldProps {
   label: string;
   description?: string;
+  name?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: Array<{ value: string; label: string }>;
@@ -26,6 +27,7 @@ interface SelectFieldProps {
 interface InputFieldProps {
   label: string;
   description?: string;
+  name?: string;
   type?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -56,6 +58,7 @@ export const FormField: React.FC<FormFieldProps> = ({
 export const SelectField: React.FC<SelectFieldProps> = ({
   label,
   description,
+  name,
   value,
   onChange,
   options,
@@ -65,6 +68,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   return (
     <FormField label={label} description={description} className={className}>
       <select
+        name={name}
         value={value}
         onChange={onChange}
         required={required}
@@ -83,6 +87,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
 export const InputField: React.FC<InputFieldProps> = ({
   label,
   description,
+  name,
   type = 'text',
   value,
   onChange,
@@ -93,6 +98,7 @@ export const InputField: React.FC<InputFieldProps> = ({
   return (
     <FormField label={label} description={description} className={className}>
       <input
+        name={name}
         type={type}
         value={value}
         onChange={onChange}

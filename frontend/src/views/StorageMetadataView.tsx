@@ -65,7 +65,7 @@ const StorageMetadataView: React.FC = () => {
     });
 
     if (result) {
-      setResults({} as StorageMetadataResponse);
+      setResults(result as StorageMetadataResponse);
     }
     
     setIsLoading(false);
@@ -87,6 +87,7 @@ const StorageMetadataView: React.FC = () => {
           <SelectField
             label={t('analysis.storageMetadata.tableName')}
             description={t('analysis.storageMetadata.tableNameDesc')}
+            name="tableName"
             value={formData.tableName}
             onChange={handleInputChange}
             options={tableOptions}
@@ -95,6 +96,7 @@ const StorageMetadataView: React.FC = () => {
           <SelectField
             label={t('analysis.storageMetadata.responsibleProcess')}
             description={t('analysis.storageMetadata.responsibleProcessDesc')}
+            name="responsibleProcess"
             value={formData.responsibleProcess}
             onChange={handleInputChange}
             options={processOptions}
@@ -105,7 +107,7 @@ const StorageMetadataView: React.FC = () => {
       {/* Results */}
       {results && (
         <ResultsCard title={t('analysis.storageMetadata.results')}>
-          {results.metadata.length === 0 ? (
+          {!results.metadata || results.metadata.length === 0 ? (
             <EmptyState message={t('analysis.storageMetadata.noResults')} />
           ) : (
             <div className="space-y-4">
