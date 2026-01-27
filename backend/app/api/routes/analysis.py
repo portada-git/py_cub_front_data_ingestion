@@ -161,107 +161,69 @@ async def get_daily_entries(
     request: DailyEntriesRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get daily entry counts for a publication"""
+    """Get daily entry counts for a publication from real data"""
     try:
         logger.info(f"Getting daily entries for publication: {request.publication}")
         
-        # Try to get real data from PortAda service
+        # Get real data from PortAda service
         try:
             layer_news = portada_service._get_news_layer()
             
-            # Try to read real data from the publication
-            df = layer_news.read_raw_data(request.publication)
+            # Read real data from ship_entries table
+            df = layer_news.read_raw_data("ship_entries")
             
-            # This would be the real implementation
-            # For now, generate more realistic mock data based on historical patterns
+            # Filter by publication (case-insensitive)
+            publication_upper = request.publication.upper()
+            df_filtered = df.filter(f"UPPER(publication_name) = '{publication_upper}'")
+            
+            # If dates provided, filter by date range
+            if request.start_date and request.end_date:
+                df_filtered = df_filtered.filter(
+                    f"publication_date >= '{request.start_date}' AND publication_date <= '{request.end_date}'"
+                )
+                logger.info(f"Filtering by date range: {request.start_date} to {request.end_date}")
+            
+            # Group by publication_date and count entries
+            from pyspark.sql import functions as F
+            daily_df = df_filtered.groupBy("publication_date").agg(
+                F.count("*").alias("count")
+            ).orderBy("publication_date")
+            
+            # Collect results
+            daily_results = daily_df.collect()
+            
             daily_counts = []
             total_entries = 0
             
-            # If no dates provided, use a default range (last 30 days from today)
-            if not request.start_date or not request.end_date:
-                from datetime import timedelta
-                end_date = datetime.now()
-                start_date = end_date - timedelta(days=30)
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-                logger.info(f"No dates provided, using default range: {start_date_str} to {end_date_str}")
-            else:
-                start_date_str = request.start_date
-                end_date_str = request.end_date
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-            
-            current_date = start_date
-            while current_date <= end_date:
-                # Generate more realistic counts based on day of week and historical patterns
-                base_count = 45
-                
-                # Newspapers typically had more content on certain days
-                day_of_week = current_date.weekday()
-                if day_of_week == 6:  # Sunday - often larger editions
-                    base_count = 80
-                elif day_of_week in [0, 1]:  # Monday, Tuesday - moderate
-                    base_count = 55
-                elif day_of_week in [4, 5]:  # Friday, Saturday - weekend prep
-                    base_count = 65
-                
-                # Add some historical variation
-                month_factor = 1.0
-                if current_date.month in [12, 1]:  # Winter months - more indoor activities
-                    month_factor = 1.2
-                elif current_date.month in [6, 7, 8]:  # Summer months - less activity
-                    month_factor = 0.8
-                
-                # Add some randomness but keep it realistic
-                variation = (hash(current_date.strftime('%Y-%m-%d')) % 20) - 10
-                count = max(1, int(base_count * month_factor + variation))
+            for row in daily_results:
+                date_str = row["publication_date"]
+                count = row["count"]
                 
                 daily_counts.append({
-                    "date": current_date.strftime('%Y-%m-%d'),
+                    "date": date_str,
                     "count": count,
                     "publication": request.publication
                 })
                 total_entries += count
-                
-                # Move to next day
-                from datetime import timedelta
-                current_date += timedelta(days=1)
+            
+            # Determine actual date range from data
+            if daily_counts:
+                actual_start_date = daily_counts[0]["date"]
+                actual_end_date = daily_counts[-1]["date"]
+            else:
+                actual_start_date = request.start_date or "N/A"
+                actual_end_date = request.end_date or "N/A"
+            
+            logger.info(f"Found {len(daily_counts)} days with {total_entries} total entries for {request.publication}")
             
         except Exception as e:
-            logger.warning(f"Could not get real daily entries data: {e}, using fallback data")
-            # Fallback to mock data
-            daily_counts = []
-            total_entries = 0
-            
-            # If no dates provided, use a default range (last 30 days from today)
-            if not request.start_date or not request.end_date:
-                from datetime import timedelta
-                end_date = datetime.now()
-                start_date = end_date - timedelta(days=30)
-                start_date_str = start_date.strftime('%Y-%m-%d')
-                end_date_str = end_date.strftime('%Y-%m-%d')
-            else:
-                start_date_str = request.start_date
-                end_date_str = request.end_date
-                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-            
-            current_date = start_date
-            while current_date <= end_date:
-                count = 45 + (hash(current_date.strftime('%Y-%m-%d')) % 50)
-                daily_counts.append({
-                    "date": current_date.strftime('%Y-%m-%d'),
-                    "count": count,
-                    "publication": request.publication
-                })
-                total_entries += count
-                
-                from datetime import timedelta
-                current_date += timedelta(days=1)
-        
-        # Use the actual date range that was processed
-        actual_start_date = start_date_str if 'start_date_str' in locals() else request.start_date or "N/A"
-        actual_end_date = end_date_str if 'end_date_str' in locals() else request.end_date or "N/A"
+            logger.error(f"Error getting real daily entries data: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error querying daily entries from database: {str(e)}"
+            )
         
         return DailyEntriesResponse(
             publication=request.publication,
@@ -273,6 +235,8 @@ async def get_daily_entries(
             }
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting daily entries: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving daily entries: {str(e)}")

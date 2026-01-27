@@ -198,6 +198,10 @@ class TaskService:
             task_info.progress_percentage = 100.0
             task_info.result = result
             
+            # Update records_processed if available in result
+            if result and isinstance(result, dict) and "records_processed" in result:
+                task_info.records_processed = result["records_processed"]
+            
             logger.info(f"Task completed successfully: {task_id}")
             
         except Exception as e:

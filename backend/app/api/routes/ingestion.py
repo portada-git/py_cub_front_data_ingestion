@@ -305,9 +305,9 @@ async def get_ingestion_status(
             detail=f"Task {task_id} not found"
         )
     
-    # Get records processed from result if available
-    records_processed = 0
-    if task_info.result and "records_processed" in task_info.result:
+    # Get records processed from task_info or result
+    records_processed = task_info.records_processed or 0
+    if not records_processed and task_info.result and "records_processed" in task_info.result:
         records_processed = task_info.result["records_processed"]
     
     return IngestionStatusResponse(
