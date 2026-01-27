@@ -92,14 +92,14 @@ This implementation plan converts the file upload storage fix design into a seri
 - [x] 6. Checkpoint - Core Infrastructure Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Entity Validator Implementation
-  - [ ] 7.1 Create EntityValidator class
+- [x] 7. Entity Validator Implementation
+  - [x] 7.1 Create EntityValidator class
     - Implement validation for processing records
     - Add transformation to frontend-compatible JSON
     - Include null handling and default values
     - _Requirements: 10.1, 10.2, 10.4_
   
-  - [ ] 7.2 Add error handling and filtering
+  - [x] 7.2 Add error handling and filtering
     - Implement validation failure handling
     - Add unknown entity filtering
     - Include format validation for timestamps and sizes
@@ -110,14 +110,14 @@ This implementation plan converts the file upload storage fix design into a seri
     - **Property 13: Validation Error Handling**
     - **Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6**
 
-- [ ] 8. Update Upload Endpoint with Enhanced Error Handling
-  - [ ] 8.1 Enhance existing upload endpoint
+- [x] 8. Update Upload Endpoint with Enhanced Error Handling
+  - [x] 8.1 Enhance existing upload endpoint
     - Integrate with new StorageService and DatabaseService
     - Add comprehensive error handling and logging
     - Implement proper HTTP status codes and messages
     - _Requirements: 2.2, 2.3, 3.5_
   
-  - [ ] 8.2 Add session middleware integration
+  - [x] 8.2 Add session middleware integration
     - Connect upload endpoint with SessionManager
     - Ensure session creation/retrieval for all uploads
     - Add session validation
@@ -127,14 +127,14 @@ This implementation plan converts the file upload storage fix design into a seri
     - **Property 4: Error Response Consistency**
     - **Validates: Requirements 3.1, 3.2, 3.5**
 
-- [ ] 9. History Endpoint Implementation
-  - [ ] 9.1 Create history API endpoint
+- [x] 9. History Endpoint Implementation
+  - [x] 9.1 Create history API endpoint
     - Implement `/api/ingestion/history` endpoint
     - Add pagination support for processing records
     - Include filtering by date range, status, and filename
     - _Requirements: 7.2, 7.5_
   
-  - [ ] 9.2 Integrate with session management
+  - [x] 9.2 Integrate with session management
     - Ensure history is scoped to current session
     - Add session validation for history requests
     - Include proper error handling for invalid sessions
@@ -146,14 +146,14 @@ This implementation plan converts the file upload storage fix design into a seri
     - Test session-scoped data retrieval
     - _Requirements: 7.2, 7.5, 8.3_
 
-- [ ] 10. Configuration and Environment Setup
-  - [ ] 10.1 Implement configuration management
+- [-] 10. Configuration and Environment Setup
+  - [x] 10.1 Implement configuration management
     - Add environment variable support for storage paths
     - Implement configuration validation
     - Add support for nested directory structures
     - _Requirements: 6.1, 6.3, 6.4_
   
-  - [ ] 10.2 Add application startup validation
+  - [-] 10.2 Add application startup validation
     - Implement storage directory writability checks
     - Add database connectivity validation
     - Include startup failure prevention for invalid configs
