@@ -50,7 +50,7 @@ async def get_or_create_session(request: Request, response: Response) -> str:
         return str(uuid.uuid4())
 
 
-@router.post("/upload")
+@router.post("/enhanced-upload")
 async def enhanced_upload(
     request: Request,
     response: Response,

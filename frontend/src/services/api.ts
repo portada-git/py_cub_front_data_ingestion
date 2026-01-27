@@ -77,6 +77,18 @@ class ApiService {
     // Error interceptor for enhanced error handling
     this.addErrorInterceptor((error: ApiError) => {
       console.error('[API] Error:', error.message, error.details);
+      
+      // Handle authentication errors globally
+      if (error.status === 401) {
+        console.warn('[API] Authentication failed - clearing token');
+        this.clearToken();
+        
+        // Dispatch a custom event to notify components
+        window.dispatchEvent(new CustomEvent('auth-error', { 
+          detail: { error: error.message } 
+        }));
+      }
+      
       return error;
     });
   }
@@ -160,6 +172,7 @@ class ApiService {
       let config: RequestInit & { url: string } = {
         ...options,
         url,
+        credentials: 'include', // IMPORTANT: Include cookies in requests
         headers: {
           ...this.getAuthHeaders(),
           ...options.headers,
@@ -226,6 +239,7 @@ class ApiService {
       let config: RequestInit & { url: string } = {
         method: 'POST',
         url,
+        credentials: 'include', // IMPORTANT: Include cookies in requests
         headers: {
           // Don't set Content-Type for FormData, let browser set it
           'Authorization': this.token ? `Bearer ${this.token}` : '',

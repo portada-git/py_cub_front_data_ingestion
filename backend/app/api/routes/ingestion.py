@@ -243,7 +243,9 @@ async def upload_data(
                 "publication": publication,
                 "entity_name": entity_name
             },
-            user_id=current_user["username"]
+            user_id=current_user["username"],
+            file_name=file.filename,
+            file_size=file_validation.file_size
         )
         
         # Start background processing

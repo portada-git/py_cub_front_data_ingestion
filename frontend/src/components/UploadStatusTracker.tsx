@@ -27,7 +27,7 @@ const UploadStatusTracker: React.FC<UploadStatusTrackerProps> = ({
   onComplete,
   onError,
   onCancel,
-  pollInterval = 2000, // 2 seconds
+  pollInterval = 5000, // 5 seconds (increased from 2 seconds)
   maxPollAttempts = 150, // 5 minutes max
   className = ''
 }) => {
@@ -97,8 +97,45 @@ const UploadStatusTracker: React.FC<UploadStatusTrackerProps> = ({
       setStatusData(newStatusData);
       setPollAttempts(prev => prev + 1);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error polling status:', error);
+      
+      // Handle authentication errors specifically
+      if (error.status === 401) {
+        setStatusData(prev => ({
+          ...prev,
+          status: 'error',
+          message: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
+          error: 'Authentication required',
+          endTime: new Date()
+        }));
+        
+        setIsPolling(false);
+        
+        if (onError) {
+          onError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        }
+        return;
+      }
+      
+      // Handle 404 - task not found (backend restarted or task expired)
+      if (error.status === 404) {
+        console.warn(`[UploadStatusTracker] Task not found (404): ${taskId}`);
+        setStatusData(prev => ({
+          ...prev,
+          status: 'error',
+          message: 'La tarea ya no existe en el servidor (posible reinicio del backend)',
+          error: 'Task not found',
+          endTime: new Date()
+        }));
+        
+        setIsPolling(false);
+        
+        if (onError) {
+          onError('La tarea ya no existe en el servidor');
+        }
+        return;
+      }
       
       // If we've made several attempts and still getting errors, stop polling
       if (pollAttempts > 5) {

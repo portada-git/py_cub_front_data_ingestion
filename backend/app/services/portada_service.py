@@ -88,7 +88,7 @@ class PortAdaService:
         
         # Thread pool for CPU-intensive operations
         self._thread_pool = ThreadPoolExecutor(
-            max_workers=2,  # Limit concurrent PortAda operations
+            max_workers=4,  # Increased from 2 to 4 for better concurrency
             thread_name_prefix="portada"
         )
     
@@ -243,10 +243,10 @@ class PortAdaService:
             else:
                 raise ValueError(f"Unsupported JSON format: expected array or object, got {type(data)}")
             
-            # Create temporary file with flat array format
+            # Create temporary file with flat array format (no indentation for speed)
             import tempfile
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
-                json.dump(entries, temp_file, indent=2)
+                json.dump(entries, temp_file)  # No indent for faster I/O
                 temp_file_path = temp_file.name
             
             try:

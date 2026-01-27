@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useUploadStore, UploadTask } from '../store/useUploadStore';
+import { useGlobalProcesses } from '../hooks/useGlobalProcesses';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 type FilterStatus = 'all' | 'active' | 'completed' | 'failed';
@@ -41,6 +42,9 @@ const ProcessDashboardView: React.FC = () => {
     clearOldHistory,
     clearAllTasks
   } = useUploadStore();
+  
+  // Enable global process syncing for this view
+  const { isGlobalSyncActive } = useGlobalProcesses({ enabled: true });
   
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
@@ -268,10 +272,10 @@ const ProcessDashboardView: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Activos</p>
               <p className="text-2xl font-bold text-gray-900">{isNaN(stats.activeTasks) ? 0 : (stats.activeTasks || 0)}</p>
-              {isPolling && (
+              {isGlobalSyncActive && (
                 <div className="flex items-center mt-1">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-1" />
-                  <span className="text-xs text-green-600">Monitoreando</span>
+                  <span className="text-xs text-green-600">Sincronizando</span>
                 </div>
               )}
             </div>

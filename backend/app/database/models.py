@@ -46,6 +46,9 @@ class Session(Base):
             # Default to 30 days from creation
             from ..core.config import settings
             duration_days = settings.database.SESSION_DURATION_DAYS
+            # Ensure created_at is set before calculating expires_at
+            if not self.created_at:
+                self.created_at = datetime.utcnow()
             self.expires_at = self.created_at + timedelta(days=duration_days)
     
     def is_expired(self) -> bool:

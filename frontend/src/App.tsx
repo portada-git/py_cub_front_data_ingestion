@@ -6,7 +6,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useStore';
-import { useUploadStore } from './store/useUploadStore';
 import { useSession } from './hooks/useSession';
 import Layout from './components/Layout';
 import LoginView from './views/LoginView';
@@ -16,7 +15,6 @@ import AnalysisView from './views/AnalysisView';
 import ProcessDashboardView from './views/ProcessDashboardView';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationContainer from './components/NotificationContainer';
-import UploadMonitor from './components/UploadMonitor';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Initialize i18n
@@ -33,8 +31,7 @@ const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ childr
 };
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
-  const { getStats } = useUploadStore();
+  const { isAuthenticated, logout } = useAuthStore();
   
   // Initialize session management for authenticated users with longer intervals
   useSession({
@@ -53,7 +50,23 @@ const App: React.FC = () => {
     }
   }, []); // Remove isAuthenticated dependency to prevent re-runs
 
-  const uploadStats = getStats();
+  // Global authentication error handler
+  useEffect(() => {
+    const handleAuthError = (event: CustomEvent) => {
+      console.warn('[App] Authentication error detected:', event.detail);
+      
+      // Only logout if currently authenticated
+      if (isAuthenticated) {
+        logout();
+      }
+    };
+
+    window.addEventListener('auth-error', handleAuthError as EventListener);
+    
+    return () => {
+      window.removeEventListener('auth-error', handleAuthError as EventListener);
+    };
+  }, [logout, isAuthenticated]);
 
   return (
     <ErrorBoundary>
@@ -99,11 +112,6 @@ const App: React.FC = () => {
         
         {/* Global notification container */}
         <NotificationContainer />
-        
-        {/* Upload Monitor - Always visible when there are tasks */}
-        {isAuthenticated && uploadStats.totalTasks > 0 && (
-          <UploadMonitor position="bottom-right" />
-        )}
       </div>
     </ErrorBoundary>
   );

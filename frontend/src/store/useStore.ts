@@ -51,7 +51,7 @@ interface NotificationState {
 // Auth store with persistence
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       
@@ -85,20 +85,30 @@ export const useAuthStore = create<AuthState>()(
       },
       
       logout: async () => {
+        // Prevent multiple simultaneous logout calls
+        const currentState = get();
+        if (!currentState.isAuthenticated && !currentState.user) {
+          console.log('[Auth] Already logged out, skipping');
+          return;
+        }
+        
+        // Clear state immediately to prevent multiple calls
+        set({ user: null, isAuthenticated: false });
+        
         try {
+          // Try to call logout API, but don't fail if it errors
           await apiService.logout();
         } catch (error) {
-          console.error('Logout error:', error);
-        } finally {
-          set({ user: null, isAuthenticated: false });
-          
-          // Add info notification
-          useNotificationStore.getState().addNotification({
-            type: 'info',
-            title: 'Sesión cerrada',
-            message: 'Has cerrado sesión correctamente',
-          });
+          console.error('Logout API error (ignored):', error);
+          // Ignore errors - we already cleared the state
         }
+        
+        // Add info notification only once
+        useNotificationStore.getState().addNotification({
+          type: 'info',
+          title: 'Sesión cerrada',
+          message: 'Has cerrado sesión correctamente',
+        });
       },
       
       setUser: (user: UserSession) => {

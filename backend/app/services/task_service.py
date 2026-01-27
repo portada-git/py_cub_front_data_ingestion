@@ -53,6 +53,9 @@ class TaskInfo:
     error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = None
+    file_name: Optional[str] = None  # Added for frontend display
+    file_size: Optional[int] = None  # Added for frontend display
+    records_processed: Optional[int] = None  # Added for frontend display
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""
@@ -63,13 +66,15 @@ class TaskInfo:
                 data[key] = value.isoformat()
         return data
     
-    def update_progress(self, percentage: float, step: str = "", completed_steps: int = None):
+    def update_progress(self, percentage: float, step: str = "", completed_steps: int = None, records_processed: int = None):
         """Update task progress"""
         self.progress_percentage = max(0.0, min(100.0, percentage))
         if step:
             self.current_step = step
         if completed_steps is not None:
             self.completed_steps = completed_steps
+        if records_processed is not None:
+            self.records_processed = records_processed
         self.updated_at = datetime.utcnow()
 
 
@@ -91,7 +96,9 @@ class TaskService:
         description: str,
         priority: TaskPriority = TaskPriority.NORMAL,
         metadata: Optional[Dict[str, Any]] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        file_name: Optional[str] = None,
+        file_size: Optional[int] = None
     ) -> str:
         """
         Create a new background task
@@ -103,6 +110,8 @@ class TaskService:
             priority: Task priority
             metadata: Additional task metadata
             user_id: ID of user who created the task
+            file_name: Name of the file being processed (optional)
+            file_size: Size of the file being processed (optional)
             
         Returns:
             Task ID
@@ -119,7 +128,9 @@ class TaskService:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
             metadata=metadata or {},
-            user_id=user_id
+            user_id=user_id,
+            file_name=file_name,
+            file_size=file_size
         )
         
         self.tasks[task_id] = task_info
@@ -364,7 +375,8 @@ class TaskService:
         task_id: str,
         percentage: float,
         step: str = "",
-        completed_steps: int = None
+        completed_steps: int = None,
+        records_processed: int = None
     ) -> bool:
         """
         Update task progress
@@ -374,6 +386,7 @@ class TaskService:
             percentage: Progress percentage (0-100)
             step: Current step description
             completed_steps: Number of completed steps
+            records_processed: Number of records processed
             
         Returns:
             True if task was updated, False otherwise
@@ -382,7 +395,7 @@ class TaskService:
         if not task_info:
             return False
         
-        task_info.update_progress(percentage, step, completed_steps)
+        task_info.update_progress(percentage, step, completed_steps, records_processed)
         return True
 
 

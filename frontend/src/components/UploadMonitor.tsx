@@ -55,6 +55,11 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
   const activeTasks = getActiveTasks();
   const stats = getStats();
   
+  // Clean up old completed/failed tasks on mount (keep only last hour)
+  useEffect(() => {
+    clearOldHistory(1/24); // Clear tasks older than 1 hour (1/24 of a day)
+  }, []); // Run only on mount
+  
   // Polling function
   const pollTaskStatus = useCallback(async (task: UploadTask) => {
     // Skip polling for tasks with temporary taskIds
@@ -106,8 +111,32 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
       
       updateTask(task.id, updates);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[UploadMonitor] Error polling task ${task.fileName}:`, error);
+      
+      // Handle authentication errors - stop polling
+      if (error.status === 401) {
+        console.warn('[UploadMonitor] Authentication error - stopping polling');
+        stopPolling();
+        addNotification({
+          type: 'warning',
+          title: 'Sesión expirada',
+          message: 'Por favor, inicia sesión nuevamente para continuar monitoreando los procesos'
+        });
+        return;
+      }
+      
+      // Handle 404 - task not found (backend restarted or task expired)
+      if (error.status === 404) {
+        console.warn(`[UploadMonitor] Task not found (404) - removing from store: ${task.fileName}`);
+        removeTask(task.id);
+        addNotification({
+          type: 'info',
+          title: 'Tarea no encontrada',
+          message: `La tarea "${task.fileName}" ya no existe en el servidor`
+        });
+        return;
+      }
       
       // If we can't get status, mark as failed after several attempts
       if (task.retryCount >= 3) {
@@ -118,7 +147,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
         });
       }
     }
-  }, [updateTask, addNotification]);
+  }, [updateTask, addNotification, stopPolling, removeTask]);
   
   // Main polling loop
   const pollAllActiveTasks = useCallback(async () => {
@@ -210,8 +239,19 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   };
   
-  // Don't render if no tasks
-  if (tasks.length === 0) {
+  // Don't render if no tasks or only old completed/failed tasks
+  const hasActiveTasks = activeTasks.length > 0;
+  const recentCompletedTasks = tasks.filter(task => {
+    if (!['completed', 'failed', 'cancelled'].includes(task.status)) return false;
+    if (!task.endTime) return false;
+    
+    // Show completed/failed tasks for 30 seconds after completion
+    const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+    return task.endTime > thirtySecondsAgo;
+  });
+  
+  // Only show if there are active tasks or recent completed tasks
+  if (!hasActiveTasks && recentCompletedTasks.length === 0) {
     return null;
   }
   
@@ -254,9 +294,16 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
             <div className="flex items-center space-x-1">
               {stats.completedTasks > 0 && (
                 <button
-                  onClick={() => clearOldHistory(1)} // Clear history older than 1 day
+                  onClick={() => {
+                    clearOldHistory(0); // Clear all completed/failed tasks
+                    addNotification({
+                      type: 'success',
+                      title: 'Historial limpiado',
+                      message: 'Se eliminaron las tareas completadas y fallidas'
+                    });
+                  }}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Limpiar historial antiguo"
+                  title="Limpiar historial"
                 >
                   <CheckCircle className="w-4 h-4" />
                 </button>

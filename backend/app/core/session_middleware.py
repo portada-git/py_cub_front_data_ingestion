@@ -129,6 +129,10 @@ class SessionMiddleware(BaseHTTPMiddleware):
         """
         path = request.url.path
         
+        # Skip for OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return True
+        
         # Skip for excluded paths
         if any(excluded in path for excluded in self.excluded_paths):
             return True
@@ -234,10 +238,10 @@ class SessionMiddleware(BaseHTTPMiddleware):
         """
         try:
             if hasattr(response, 'set_cookie'):
-                from datetime import datetime, timedelta
+                from datetime import datetime, timedelta, timezone
                 
-                # Calculate cookie expiration
-                expires = datetime.utcnow() + timedelta(days=settings.database.SESSION_DURATION_DAYS)
+                # Calculate cookie expiration with UTC timezone
+                expires = datetime.now(timezone.utc) + timedelta(days=settings.database.SESSION_DURATION_DAYS)
                 
                 response.set_cookie(
                     key=self.session_manager.SESSION_COOKIE_NAME,
