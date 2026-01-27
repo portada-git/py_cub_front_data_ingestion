@@ -127,16 +127,16 @@ class ServiceContainer:
             # Enhanced File Handler
             self.enhanced_file_handler = EnhancedFileHandler(
                 storage_service=self.storage_service,
-                database_service=self.database_service,
-                session_manager=self.session_manager
+                database_service=self.database_service
             )
             logger.info("✅ Enhanced File Handler initialized")
             
             # Concurrent Upload Manager
             self.concurrent_upload_manager = ConcurrentUploadManager(
-                enhanced_file_handler=self.enhanced_file_handler,
+                file_handler=self.enhanced_file_handler,
                 max_concurrent_uploads=5,  # Configurable
-                queue_timeout_seconds=300  # 5 minutes
+                max_queue_size=100,
+                upload_timeout_seconds=300  # 5 minutes
             )
             logger.info("✅ Concurrent Upload Manager initialized")
             
@@ -168,7 +168,9 @@ class ServiceContainer:
             
             # Stop concurrent upload manager
             if self.concurrent_upload_manager:
-                await self.concurrent_upload_manager.shutdown()
+                # Check if it has a shutdown method, otherwise skip
+                if hasattr(self.concurrent_upload_manager, 'shutdown'):
+                    await self.concurrent_upload_manager.shutdown()
                 logger.info("Concurrent upload manager stopped")
             
             # Close database connections

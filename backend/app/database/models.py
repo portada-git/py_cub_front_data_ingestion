@@ -100,6 +100,7 @@ class ProcessingRecord(Base):
     processing_status = Column(String(50), default='uploaded', nullable=False)
     processing_started_at = Column(DateTime, nullable=True)
     processing_completed_at = Column(DateTime, nullable=True)
+    records_processed = Column(Integer, default=0, nullable=False)  # Number of records processed
     
     # Error handling
     error_message = Column(Text, nullable=True)
@@ -171,6 +172,7 @@ class ProcessingRecord(Base):
             'processing_started_at': self.processing_started_at.isoformat() if self.processing_started_at else None,
             'processing_completed_at': self.processing_completed_at.isoformat() if self.processing_completed_at else None,
             'processing_duration_seconds': duration.total_seconds() if duration else None,
+            'records_processed': self.records_processed or 0,  # Include records processed
             'error_message': self.error_message,
             'retry_count': self.retry_count,
             'metadata': self.record_metadata or {},  # Use renamed field

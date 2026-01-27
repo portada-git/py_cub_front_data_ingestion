@@ -53,6 +53,7 @@ class EntityValidator:
                 'processing_started_at': self._validate_iso_timestamp(record_dict.get('processing_started_at')),
                 'processing_completed_at': self._validate_iso_timestamp(record_dict.get('processing_completed_at')),
                 'processing_duration_seconds': self._validate_float(record_dict.get('processing_duration_seconds')),
+                'records_processed': self._validate_integer(record_dict.get('records_processed'), 0),
                 'error_message': self._validate_string(record_dict.get('error_message')),
                 'retry_count': self._validate_integer(record_dict.get('retry_count'), 0),
                 'metadata': self._validate_metadata(record_dict.get('metadata')),
@@ -269,18 +270,53 @@ class EntityValidator:
         """Validate and convert value to integer"""
         if value is None:
             return default
+        
+        # Handle NaN values explicitly
+        if isinstance(value, float):
+            import math
+            if math.isnan(value) or math.isinf(value):
+                return default
+        
+        # Handle string representations of NaN
+        if isinstance(value, str):
+            if value.lower() in ('nan', 'null', 'none', ''):
+                return default
+        
         try:
-            return int(value)
-        except (ValueError, TypeError):
+            converted = int(value)
+            # Additional check for NaN after conversion
+            if isinstance(converted, float):
+                import math
+                if math.isnan(converted) or math.isinf(converted):
+                    return default
+            return converted
+        except (ValueError, TypeError, OverflowError):
             return default
     
     def _validate_float(self, value: Any, default: Optional[float] = None) -> Optional[float]:
         """Validate and convert value to float"""
         if value is None:
             return default
+        
+        # Handle NaN values explicitly
+        if isinstance(value, float):
+            import math
+            if math.isnan(value) or math.isinf(value):
+                return default
+        
+        # Handle string representations of NaN
+        if isinstance(value, str):
+            if value.lower() in ('nan', 'null', 'none', '', 'inf', '-inf'):
+                return default
+        
         try:
-            return float(value)
-        except (ValueError, TypeError):
+            converted = float(value)
+            # Check for NaN or infinity after conversion
+            import math
+            if math.isnan(converted) or math.isinf(converted):
+                return default
+            return converted
+        except (ValueError, TypeError, OverflowError):
             return default
     
     def _validate_boolean(self, value: Any, default: bool = False) -> bool:
@@ -360,6 +396,7 @@ class EntityValidator:
             'processing_started_at': None,
             'processing_completed_at': None,
             'processing_duration_seconds': None,
+            'records_processed': 0,
             'error_message': 'Entity validation failed',
             'retry_count': 0,
             'metadata': {},
