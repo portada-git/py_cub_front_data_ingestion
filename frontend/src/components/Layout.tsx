@@ -97,13 +97,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div 
-                  className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
+                <img 
+                  src="/logo.png" 
+                  alt="PortAda Logo" 
+                  className="w-10 h-10 object-contain"
                   role="img"
                   aria-label={t('navigation.logoAlt')}
-                >
-                  <Database className="w-5 h-5 text-white" aria-hidden="true" />
-                </div>
+                />
               </div>
               <div className="ml-3">
                 <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
@@ -249,13 +249,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Menu className="w-6 h-6" aria-hidden="true" />
             </button>
             <div className="flex items-center">
-              <div 
-                className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center mr-2"
+              <img 
+                src="/logo.png" 
+                alt="PortAda Logo" 
+                className="w-8 h-8 object-contain mr-2"
                 role="img"
                 aria-label={t('navigation.logoAlt')}
-              >
-                <Database className="w-4 h-4 text-white" aria-hidden="true" />
-              </div>
+              />
               <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
             </div>
             <div className="w-10" /> {/* Spacer */}

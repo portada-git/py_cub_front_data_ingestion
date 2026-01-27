@@ -125,13 +125,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <div className="flex items-center">
-              <div 
-                className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"
+              <img 
+                src="/logo.png" 
+                alt="PortAda Logo" 
+                className="w-10 h-10 object-contain"
                 role="img"
                 aria-label={t('navigation.logoAlt')}
-              >
-                <span className="text-white font-bold text-sm">P</span>
-              </div>
+              />
               <div className="ml-3">
                 <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
               </div>

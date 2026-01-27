@@ -48,17 +48,18 @@ const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Database className="h-8 w-8 text-white" />
+          <div className="mx-auto h-24 w-24 flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="PortAda Logo" 
+              className="h-full w-full object-contain"
+            />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            PortAda
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-6 text-sm text-gray-600">
             Sistema de Ingestión y Análisis de Datos
           </p>
           <p className="mt-1 text-xs text-gray-500">
