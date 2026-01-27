@@ -135,16 +135,21 @@ class StartupValidator:
             db_url = settings.database.DATABASE_URL
             logger.debug(f"Testing database connectivity: {self.config_manager._mask_sensitive_info(db_url)}")
             
+            # For testing, convert async SQLite URL to sync
+            test_db_url = db_url
+            if 'sqlite+aiosqlite' in db_url:
+                test_db_url = db_url.replace('sqlite+aiosqlite', 'sqlite')
+            
             # Create engine with appropriate configuration
-            if 'sqlite' in db_url.lower():
+            if 'sqlite' in test_db_url.lower():
                 engine = create_engine(
-                    db_url,
+                    test_db_url,
                     poolclass=StaticPool,
                     connect_args={"check_same_thread": False},
                     echo=settings.database.DATABASE_ECHO
                 )
             else:
-                engine = create_engine(db_url, echo=settings.database.DATABASE_ECHO)
+                engine = create_engine(test_db_url, echo=settings.database.DATABASE_ECHO)
             
             # Test connectivity
             with engine.connect() as conn:

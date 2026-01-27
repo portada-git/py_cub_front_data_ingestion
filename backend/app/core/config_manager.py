@@ -529,7 +529,7 @@ class ConfigurationManager:
         try:
             import sys
             import platform
-            import psutil
+            import shutil
             
             # Get basic system info
             python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -542,17 +542,29 @@ class ConfigurationManager:
                 if not any(sensitive in key.lower() for sensitive in ['password', 'secret', 'key', 'token'])
             }
             
-            # Get system resources
-            try:
-                disk_usage = psutil.disk_usage('/')
-                disk_space_mb = disk_usage.free // (1024 * 1024)
-            except:
-                disk_space_mb = 0
+            # Get system resources - fallback to basic methods if psutil not available
+            disk_space_mb = 0
+            memory_mb = 0
             
             try:
+                # Try psutil first
+                import psutil
+                disk_usage = psutil.disk_usage('/')
+                disk_space_mb = disk_usage.free // (1024 * 1024)
                 memory_info = psutil.virtual_memory()
                 memory_mb = memory_info.available // (1024 * 1024)
-            except:
+            except ImportError:
+                # Fallback to basic disk space check
+                try:
+                    disk_usage = shutil.disk_usage('/')
+                    disk_space_mb = disk_usage.free // (1024 * 1024)
+                except:
+                    disk_space_mb = 0
+                
+                # Memory info not available without psutil
+                memory_mb = 0
+            except Exception:
+                disk_space_mb = 0
                 memory_mb = 0
             
             env_info = EnvironmentInfo(
@@ -570,8 +582,9 @@ class ConfigurationManager:
         except Exception as e:
             logger.error(f"Error getting environment info: {e}")
             # Return minimal info on error
+            import sys
             return EnvironmentInfo(
-                python_version="unknown",
+                python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 platform="unknown",
                 working_directory=str(Path.cwd()),
                 environment_variables={},
@@ -721,34 +734,74 @@ class ConfigurationManager:
             
             db_url = settings.database.DATABASE_URL
             
+            # For testing, convert async SQLite URL to sync
+            test_db_url = db_url
+            if 'sqlite+aiosqlite' in db_url:
+                test_db_url = db_url.replace('sqlite+aiosqlite', 'sqlite')
+            
             # Create test engine with appropriate configuration
-            if 'sqlite' in db_url.lower():
+            if 'sqlite' in test_db_url.lower():
                 # For SQLite, use special configuration
                 engine = create_engine(
-                    db_url,
+                    test_db_url,
                     poolclass=StaticPool,
                     connect_args={"check_same_thread": False},
                     echo=False
                 )
             else:
-                engine = create_engine(db_url, echo=False)
+                engine = create_engine(test_db_url, echo=False)
             
-            # Test basic connectivity
-            with engine.connect() as conn:
-                # Simple test query
-                result = conn.execute(text("SELECT 1"))
-                test_value = result.scalar()
-                
-                if test_value != 1:
+            # Test basic connectivity with synchronous connection
+            try:
+                with engine.connect() as conn:
+                    # Simple test query
+                    result = conn.execute(text("SELECT 1"))
+                    test_value = result.scalar()
+                    
+                    if test_value != 1:
+                        return {
+                            'success': False,
+                            'error': f"Database test query returned unexpected value: {test_value}",
+                            'details': {}
+                        }
+            except Exception as e:
+                # If connection fails, try to create the database file for SQLite
+                if 'sqlite' in test_db_url.lower() and ('no such file' in str(e).lower() or 'unable to open' in str(e).lower()):
+                    try:
+                        # Extract database path and create directory
+                        if ':///' in test_db_url:
+                            db_path = test_db_url.split(':///', 1)[1]
+                            if db_path and not db_path.startswith(':memory:'):
+                                db_file = Path(db_path)
+                                db_file.parent.mkdir(parents=True, exist_ok=True)
+                                
+                                # Try connection again
+                                with engine.connect() as conn:
+                                    result = conn.execute(text("SELECT 1"))
+                                    test_value = result.scalar()
+                                    
+                                    if test_value != 1:
+                                        return {
+                                            'success': False,
+                                            'error': f"Database test query returned unexpected value: {test_value}",
+                                            'details': {}
+                                        }
+                    except Exception as retry_e:
+                        return {
+                            'success': False,
+                            'error': f"Database connectivity failed after retry: {retry_e}",
+                            'details': {'original_error': str(e), 'retry_error': str(retry_e)}
+                        }
+                else:
                     return {
                         'success': False,
-                        'error': f"Database test query returned unexpected value: {test_value}",
-                        'details': {}
+                        'error': str(e),
+                        'details': {'exception_type': type(e).__name__}
                     }
             
             # Test database file creation for SQLite
-            if 'sqlite' in db_url.lower() and ':///' in db_url:
-                db_path = db_url.split(':///', 1)[1]
+            if 'sqlite' in test_db_url.lower() and ':///' in test_db_url:
+                db_path = test_db_url.split(':///', 1)[1]
                 if db_path and not db_path.startswith(':memory:'):
                     db_file = Path(db_path)
                     if not db_file.exists():
@@ -764,8 +817,9 @@ class ConfigurationManager:
                 'success': True,
                 'error': None,
                 'details': {
-                    'database_type': 'sqlite' if 'sqlite' in db_url.lower() else 'other',
-                    'connection_test': 'passed'
+                    'database_type': 'sqlite' if 'sqlite' in test_db_url.lower() else 'other',
+                    'connection_test': 'passed',
+                    'test_url': self._mask_sensitive_info(test_db_url)
                 }
             }
             
@@ -785,10 +839,6 @@ class ConfigurationManager:
             dict: Storage writability test results
         """
         try:
-            from datetime import datetime
-            import tempfile
-            import uuid
-            
             test_results = {}
             
             # Test storage base path
@@ -838,6 +888,9 @@ class ConfigurationManager:
             dict: Test results for this directory
         """
         try:
+            import uuid
+            from datetime import datetime
+            
             # Ensure directory exists
             directory.mkdir(parents=True, exist_ok=True)
             
