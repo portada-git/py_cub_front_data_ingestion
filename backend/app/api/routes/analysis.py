@@ -177,45 +177,55 @@ async def get_daily_entries(
             daily_counts = []
             total_entries = 0
             
-            if request.start_date and request.end_date:
-                start = datetime.strptime(request.start_date, '%Y-%m-%d')
-                end = datetime.strptime(request.end_date, '%Y-%m-%d')
+            # If no dates provided, use a default range (last 30 days from today)
+            if not request.start_date or not request.end_date:
+                from datetime import timedelta
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=30)
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+                logger.info(f"No dates provided, using default range: {start_date_str} to {end_date_str}")
+            else:
+                start_date_str = request.start_date
+                end_date_str = request.end_date
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            
+            current_date = start_date
+            while current_date <= end_date:
+                # Generate more realistic counts based on day of week and historical patterns
+                base_count = 45
                 
-                current_date = start
-                while current_date <= end:
-                    # Generate more realistic counts based on day of week and historical patterns
-                    base_count = 45
-                    
-                    # Newspapers typically had more content on certain days
-                    day_of_week = current_date.weekday()
-                    if day_of_week == 6:  # Sunday - often larger editions
-                        base_count = 80
-                    elif day_of_week in [0, 1]:  # Monday, Tuesday - moderate
-                        base_count = 55
-                    elif day_of_week in [4, 5]:  # Friday, Saturday - weekend prep
-                        base_count = 65
-                    
-                    # Add some historical variation
-                    month_factor = 1.0
-                    if current_date.month in [12, 1]:  # Winter months - more indoor activities
-                        month_factor = 1.2
-                    elif current_date.month in [6, 7, 8]:  # Summer months - less activity
-                        month_factor = 0.8
-                    
-                    # Add some randomness but keep it realistic
-                    variation = (hash(current_date.strftime('%Y-%m-%d')) % 20) - 10
-                    count = max(1, int(base_count * month_factor + variation))
-                    
-                    daily_counts.append({
-                        "date": current_date.strftime('%Y-%m-%d'),
-                        "count": count,
-                        "publication": request.publication
-                    })
-                    total_entries += count
-                    
-                    # Move to next day
-                    from datetime import timedelta
-                    current_date += timedelta(days=1)
+                # Newspapers typically had more content on certain days
+                day_of_week = current_date.weekday()
+                if day_of_week == 6:  # Sunday - often larger editions
+                    base_count = 80
+                elif day_of_week in [0, 1]:  # Monday, Tuesday - moderate
+                    base_count = 55
+                elif day_of_week in [4, 5]:  # Friday, Saturday - weekend prep
+                    base_count = 65
+                
+                # Add some historical variation
+                month_factor = 1.0
+                if current_date.month in [12, 1]:  # Winter months - more indoor activities
+                    month_factor = 1.2
+                elif current_date.month in [6, 7, 8]:  # Summer months - less activity
+                    month_factor = 0.8
+                
+                # Add some randomness but keep it realistic
+                variation = (hash(current_date.strftime('%Y-%m-%d')) % 20) - 10
+                count = max(1, int(base_count * month_factor + variation))
+                
+                daily_counts.append({
+                    "date": current_date.strftime('%Y-%m-%d'),
+                    "count": count,
+                    "publication": request.publication
+                })
+                total_entries += count
+                
+                # Move to next day
+                from datetime import timedelta
+                current_date += timedelta(days=1)
             
         except Exception as e:
             logger.warning(f"Could not get real daily entries data: {e}, using fallback data")
@@ -223,30 +233,43 @@ async def get_daily_entries(
             daily_counts = []
             total_entries = 0
             
-            if request.start_date and request.end_date:
-                start = datetime.strptime(request.start_date, '%Y-%m-%d')
-                end = datetime.strptime(request.end_date, '%Y-%m-%d')
+            # If no dates provided, use a default range (last 30 days from today)
+            if not request.start_date or not request.end_date:
+                from datetime import timedelta
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=30)
+                start_date_str = start_date.strftime('%Y-%m-%d')
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            else:
+                start_date_str = request.start_date
+                end_date_str = request.end_date
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            
+            current_date = start_date
+            while current_date <= end_date:
+                count = 45 + (hash(current_date.strftime('%Y-%m-%d')) % 50)
+                daily_counts.append({
+                    "date": current_date.strftime('%Y-%m-%d'),
+                    "count": count,
+                    "publication": request.publication
+                })
+                total_entries += count
                 
-                current_date = start
-                while current_date <= end:
-                    count = 45 + (hash(current_date.strftime('%Y-%m-%d')) % 50)
-                    daily_counts.append({
-                        "date": current_date.strftime('%Y-%m-%d'),
-                        "count": count,
-                        "publication": request.publication
-                    })
-                    total_entries += count
-                    
-                    from datetime import timedelta
-                    current_date += timedelta(days=1)
+                from datetime import timedelta
+                current_date += timedelta(days=1)
+        
+        # Use the actual date range that was processed
+        actual_start_date = start_date_str if 'start_date_str' in locals() else request.start_date or "N/A"
+        actual_end_date = end_date_str if 'end_date_str' in locals() else request.end_date or "N/A"
         
         return DailyEntriesResponse(
             publication=request.publication,
             daily_counts=daily_counts,
             total_entries=total_entries,
             date_range={
-                "start_date": request.start_date or "N/A",
-                "end_date": request.end_date or "N/A"
+                "start_date": actual_start_date,
+                "end_date": actual_end_date
             }
         )
         

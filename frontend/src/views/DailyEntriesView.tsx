@@ -117,6 +117,10 @@ const DailyEntriesView: React.FC = () => {
                 onChange={handleEndDateChange}
               />
             </div>
+            
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+              <p>{t('analysis.dailyEntries.dateRangeHelp')}</p>
+            </div>
           </div>
         </QueryForm>
       </AnalysisCard>

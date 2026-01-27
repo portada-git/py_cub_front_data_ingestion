@@ -77,8 +77,8 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
         status: newStatus,
         progress: response.progress_percentage || task.progress,
         message: response.message || task.message,
-        recordsProcessed: typeof response.records_processed === 'number' && !isNaN(response.records_processed) ? response.records_processed : task.recordsProcessed,
-        estimatedTotal: typeof response.estimated_total === 'number' && !isNaN(response.estimated_total) ? response.estimated_total : task.estimatedTotal
+        recordsProcessed: response.records_processed || task.recordsProcessed,
+        estimatedTotal: response.estimated_total || task.estimatedTotal
       };
       
       console.log(`[UploadMonitor] Updating task ${task.fileName} with:`, updates);
@@ -242,7 +242,7 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
                 </h3>
               </div>
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                {stats.activeTasks || 0} activos
+                {isNaN(stats.activeTasks) ? 0 : stats.activeTasks} activos
               </span>
               {isGlobalSyncActive && (
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
@@ -279,11 +279,11 @@ const UploadMonitor: React.FC<UploadMonitorProps> = ({
           {/* Stats */}
           {!minimized && (
             <div className="mt-2 flex items-center space-x-4 text-xs text-gray-600">
-              <span>Total: {stats.totalTasks || 0}</span>
-              <span>Completados: {stats.completedTasks || 0}</span>
-              <span>Fallidos: {stats.failedTasks || 0}</span>
-              {(stats.totalRecordsProcessed || 0) > 0 && (
-                <span>Registros: {(stats.totalRecordsProcessed || 0).toLocaleString()}</span>
+              <span>Total: {isNaN(stats.totalTasks) ? 0 : stats.totalTasks}</span>
+              <span>Completados: {isNaN(stats.completedTasks) ? 0 : stats.completedTasks}</span>
+              <span>Fallidos: {isNaN(stats.failedTasks) ? 0 : stats.failedTasks}</span>
+              {(stats.totalRecordsProcessed && !isNaN(stats.totalRecordsProcessed) && stats.totalRecordsProcessed > 0) && (
+                <span>Registros: {stats.totalRecordsProcessed.toLocaleString()}</span>
               )}
             </div>
           )}

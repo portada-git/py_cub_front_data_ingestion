@@ -220,7 +220,7 @@ const ProcessDashboardView: React.FC = () => {
           >
             <Activity className="w-4 h-4 inline mr-2" />
             Procesos Activos
-            {stats.activeTasks > 0 && (
+            {(stats.activeTasks && !isNaN(stats.activeTasks) && stats.activeTasks > 0) && (
               <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
                 {stats.activeTasks}
               </span>
@@ -255,7 +255,7 @@ const ProcessDashboardView: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Procesos</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTasks || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">{isNaN(stats.totalTasks) ? 0 : (stats.totalTasks || 0)}</p>
             </div>
           </div>
         </div>
@@ -267,7 +267,7 @@ const ProcessDashboardView: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Activos</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeTasks || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">{isNaN(stats.activeTasks) ? 0 : (stats.activeTasks || 0)}</p>
               {isPolling && (
                 <div className="flex items-center mt-1">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-1" />
@@ -285,10 +285,10 @@ const ProcessDashboardView: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Completados</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.completedTasks || 0}</p>
-              {stats.totalTasks > 0 && (
+              <p className="text-2xl font-bold text-gray-900">{isNaN(stats.completedTasks) ? 0 : (stats.completedTasks || 0)}</p>
+              {(stats.totalTasks && !isNaN(stats.totalTasks) && stats.totalTasks > 0) && (
                 <p className="text-xs text-gray-500">
-                  {Math.round(((stats.completedTasks || 0) / (stats.totalTasks || 1)) * 100)}% éxito
+                  {Math.round(((isNaN(stats.completedTasks) ? 0 : stats.completedTasks) / stats.totalTasks) * 100)}% éxito
                 </p>
               )}
             </div>
@@ -302,10 +302,10 @@ const ProcessDashboardView: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Fallidos</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.failedTasks || 0}</p>
-              {stats.totalTasks > 0 && (
+              <p className="text-2xl font-bold text-gray-900">{isNaN(stats.failedTasks) ? 0 : (stats.failedTasks || 0)}</p>
+              {(stats.totalTasks && !isNaN(stats.totalTasks) && stats.totalTasks > 0) && (
                 <p className="text-xs text-gray-500">
-                  {Math.round(((stats.failedTasks || 0) / (stats.totalTasks || 1)) * 100)}% fallos
+                  {Math.round(((isNaN(stats.failedTasks) ? 0 : stats.failedTasks) / stats.totalTasks) * 100)}% fallos
                 </p>
               )}
             </div>
@@ -320,9 +320,9 @@ const ProcessDashboardView: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Registros</p>
               <p className="text-2xl font-bold text-gray-900">
-                {(stats.totalRecordsProcessed || 0).toLocaleString()}
+                {(isNaN(stats.totalRecordsProcessed) ? 0 : (stats.totalRecordsProcessed || 0)).toLocaleString()}
               </p>
-              {stats.averageProcessingTime > 0 && (
+              {(stats.averageProcessingTime && !isNaN(stats.averageProcessingTime) && stats.averageProcessingTime > 0) && (
                 <p className="text-xs text-gray-500">
                   Promedio: {formatTime(stats.averageProcessingTime)}
                 </p>
@@ -384,7 +384,7 @@ const ProcessDashboardView: React.FC = () => {
               Exportar
             </button>
             
-            {stats.completedTasks > 0 && activeTab === 'active' && (
+            {(stats.completedTasks && !isNaN(stats.completedTasks) && stats.completedTasks > 0) && activeTab === 'active' && (
               <button
                 onClick={() => clearOldHistory(1)}
                 className="btn btn-secondary btn-sm"
@@ -404,7 +404,7 @@ const ProcessDashboardView: React.FC = () => {
               </button>
             )}
             
-            {stats.totalTasks > 0 && (
+            {(stats.totalTasks && !isNaN(stats.totalTasks) && stats.totalTasks > 0) && (
               <button
                 onClick={clearAllTasks}
                 className="btn btn-danger btn-sm"
@@ -545,7 +545,7 @@ const ProcessDashboardView: React.FC = () => {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {task.recordsProcessed?.toLocaleString() || '-'}
+                      {(task.recordsProcessed && !isNaN(task.recordsProcessed)) ? task.recordsProcessed.toLocaleString() : '-'}
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

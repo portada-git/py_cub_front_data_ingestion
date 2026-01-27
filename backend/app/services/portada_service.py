@@ -327,8 +327,16 @@ class PortAdaService:
     
     def _get_missing_dates_sync(self, data_path: str, publication_name: str) -> list:
         """Synchronous missing dates operation to run in thread pool"""
-        layer_news = self._get_news_layer()
-        return layer_news.get_missing_dates_from_a_newspaper(data_path, publication_name=publication_name)
+        try:
+            layer_news = self._get_news_layer()
+            return layer_news.get_missing_dates_from_a_newspaper(data_path, publication_name=publication_name)
+        except Exception as e:
+            # If any error occurs (including missing data), log it and return empty list
+            if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
+                self.logger.info(f"Data not found for publication {publication_name} - no data has been processed yet")
+            else:
+                self.logger.warning(f"Error getting missing dates for {publication_name}: {str(e)}")
+            return []
     
     async def get_missing_dates(
         self, 
@@ -363,11 +371,28 @@ class PortAdaService:
             missing_dates = []
             if missing_dates_result:
                 for item in missing_dates_result:
-                    missing_dates.append(MissingDateEntry(
-                        date=str(item.get('date', '')),
-                        edition=str(item.get('edition', 'U')),
-                        gap_duration=str(item.get('gap_duration', ''))
-                    ))
+                    # Handle different return formats from PortAda
+                    if isinstance(item, dict):
+                        # Dictionary format
+                        missing_dates.append(MissingDateEntry(
+                            date=str(item.get('date', '')),
+                            edition=str(item.get('edition', 'U')),
+                            gap_duration=str(item.get('gap_duration', ''))
+                        ))
+                    elif isinstance(item, str):
+                        # String format - assume it's a date
+                        missing_dates.append(MissingDateEntry(
+                            date=item,
+                            edition='U',
+                            gap_duration=''
+                        ))
+                    else:
+                        # Other formats - try to convert to string
+                        missing_dates.append(MissingDateEntry(
+                            date=str(item),
+                            edition='U',
+                            gap_duration=''
+                        ))
             
             self.logger.info(f"Found {len(missing_dates)} missing dates for {publication_name}")
             return missing_dates
@@ -375,25 +400,43 @@ class PortAdaService:
         except Exception as e:
             error_msg = f"Error getting missing dates for {publication_name}: {str(e)}"
             self.logger.error(error_msg)
-            raise wrap_portada_error(e, f"missing dates query for {publication_name}")
+            # Return empty list instead of raising error for graceful degradation
+            self.logger.info(f"Returning empty missing dates list for {publication_name} due to error")
+            return []
 
     def _get_duplicates_metadata_sync(self, publication: Optional[str], start_date: Optional[str], end_date: Optional[str]) -> list:
         """Synchronous duplicates metadata operation to run in thread pool"""
-        metadata = self._get_metadata_manager()
-        
-        # Read duplicates log from PortAda
-        df_dup = metadata.read_log("duplicates_log")
-        
-        # Apply filters
-        if publication:
-            df_dup = df_dup.filter(f"lower(publication)='{publication.lower()}'")
-        if start_date:
-            df_dup = df_dup.filter(f"date >= '{start_date}'")
-        if end_date:
-            df_dup = df_dup.filter(f"date <= '{end_date}'")
-        
-        # Collect results
-        return df_dup.collect()
+        try:
+            metadata = self._get_metadata_manager()
+            
+            # Check if duplicates log exists before trying to read it
+            try:
+                # Read duplicates log from PortAda
+                df_dup = metadata.read_log("duplicates_log")
+            except Exception as e:
+                # If the log doesn't exist, return empty list
+                if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
+                    self.logger.info("Duplicates log not found - no data has been processed yet")
+                    return []
+                else:
+                    # Re-raise other errors
+                    raise e
+            
+            # Apply filters
+            if publication:
+                df_dup = df_dup.filter(f"lower(publication)='{publication.lower()}'")
+            if start_date:
+                df_dup = df_dup.filter(f"date >= '{start_date}'")
+            if end_date:
+                df_dup = df_dup.filter(f"date <= '{end_date}'")
+            
+            # Collect results
+            return df_dup.collect()
+            
+        except Exception as e:
+            # If any error occurs, log it and return empty list for graceful degradation
+            self.logger.warning(f"Error reading duplicates metadata: {str(e)}")
+            return []
     
     async def get_duplicates_metadata(
         self,

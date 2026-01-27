@@ -96,11 +96,6 @@ export const useUploadStore = create<UploadState>()(
               ? { 
                   ...task, 
                   ...updates,
-                  // Ensure numeric values are not NaN
-                  progress: typeof updates.progress === 'number' && !isNaN(updates.progress) ? updates.progress : task.progress,
-                  recordsProcessed: typeof updates.recordsProcessed === 'number' && !isNaN(updates.recordsProcessed) ? updates.recordsProcessed : task.recordsProcessed,
-                  estimatedTotal: typeof updates.estimatedTotal === 'number' && !isNaN(updates.estimatedTotal) ? updates.estimatedTotal : task.estimatedTotal,
-                  retryCount: typeof updates.retryCount === 'number' && !isNaN(updates.retryCount) ? updates.retryCount : task.retryCount,
                   // Set end time if status is final
                   endTime: ['completed', 'failed', 'cancelled'].includes(updates.status || task.status) 
                     ? updates.endTime || new Date() 
@@ -255,19 +250,30 @@ export const useUploadStore = create<UploadState>()(
           }
         }
         
-        // Ensure we don't return NaN values
+        // Calculate total records processed safely
         const totalRecordsProcessed = tasks.reduce((sum, t) => {
           const records = t.recordsProcessed || 0;
-          return sum + (isNaN(records) ? 0 : records);
+          return sum + (typeof records === 'number' && !isNaN(records) ? records : 0);
         }, 0);
         
+        // Return stats with safe defaults
+        const stats = {
+          totalTasks: tasks.length || 0,
+          activeTasks: tasks.filter(t => ['pending', 'uploading', 'processing'].includes(t.status)).length || 0,
+          completedTasks: completedTasks.length || 0,
+          failedTasks: tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length || 0,
+          totalRecordsProcessed: totalRecordsProcessed || 0,
+          averageProcessingTime: averageProcessingTime || 0
+        };
+        
+        // Final safety check - replace any NaN values with 0
         return {
-          totalTasks: tasks.length,
-          activeTasks: tasks.filter(t => ['pending', 'uploading', 'processing'].includes(t.status)).length,
-          completedTasks: completedTasks.length,
-          failedTasks: tasks.filter(t => ['failed', 'cancelled'].includes(t.status)).length,
-          totalRecordsProcessed: isNaN(totalRecordsProcessed) ? 0 : totalRecordsProcessed,
-          averageProcessingTime: isNaN(averageProcessingTime) ? 0 : averageProcessingTime
+          totalTasks: isNaN(stats.totalTasks) ? 0 : stats.totalTasks,
+          activeTasks: isNaN(stats.activeTasks) ? 0 : stats.activeTasks,
+          completedTasks: isNaN(stats.completedTasks) ? 0 : stats.completedTasks,
+          failedTasks: isNaN(stats.failedTasks) ? 0 : stats.failedTasks,
+          totalRecordsProcessed: isNaN(stats.totalRecordsProcessed) ? 0 : stats.totalRecordsProcessed,
+          averageProcessingTime: isNaN(stats.averageProcessingTime) ? 0 : stats.averageProcessingTime
         };
       },
       

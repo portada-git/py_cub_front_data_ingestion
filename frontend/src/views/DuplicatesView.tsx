@@ -1,23 +1,29 @@
 /**
  * Duplicates Analysis View
- * Modern implementation with dark theme and internationalization
+ * Modern implementation with enhanced empty states and internationalization
  */
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy } from 'lucide-react';
+import { Copy, Search } from 'lucide-react';
 import { apiService } from '../services/api';
 import { withErrorHandling } from '../utils/apiErrorHandler';
 import { DuplicatesResponse } from '../types';
 import AnalysisCard from '../components/AnalysisCard';
 import QueryForm from '../components/QueryForm';
 import PublicationSelector from '../components/PublicationSelector';
-import { ResultsCard, InfoMessage, EmptyState } from '../components/ResultsCard';
+import { ResultsCard, InfoMessage } from '../components/ResultsCard';
+import { 
+  NoDataState, 
+  NoDuplicatesState, 
+  SearchState 
+} from '../components/EmptyStateCard';
 
 const DuplicatesView: React.FC = () => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<DuplicatesResponse | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [formData, setFormData] = useState({
     publication: ''
   });
@@ -29,6 +35,7 @@ const DuplicatesView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setHasSearched(true);
 
     const result = await withErrorHandling(async () => {
       return await apiService.getDuplicates({
@@ -41,6 +48,53 @@ const DuplicatesView: React.FC = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const renderEmptyState = () => {
+    // If we haven't searched yet, show the initial search state
+    if (!hasSearched) {
+      return (
+        <SearchState
+          title={t('analysis.duplicates.emptyStateTitle')}
+          description={t('analysis.duplicates.emptyStateDescription')}
+          actionText={t('analysis.duplicates.queryDuplicates')}
+          onAction={() => {
+            // Trigger the form submission
+            const form = document.querySelector('form');
+            if (form) {
+              form.requestSubmit();
+            }
+          }}
+        />
+      );
+    }
+
+    // If we searched and got results but no duplicates, show success state
+    if (results && results.duplicates.length === 0) {
+      // Check if this might be because no data has been processed
+      // We can infer this if total_duplicates is 0 and no filters were applied
+      const noFiltersApplied = !formData.publication;
+      
+      if (noFiltersApplied) {
+        return (
+          <NoDataState
+            title={t('analysis.duplicates.noDataTitle')}
+            description={t('analysis.duplicates.noDataDescription')}
+            actionText={t('analysis.duplicates.noDataAction')}
+            actionPath="/ingestion"
+          />
+        );
+      } else {
+        return (
+          <NoDuplicatesState
+            title={t('analysis.duplicates.noDuplicatesTitle')}
+            description={t('analysis.duplicates.noDuplicatesDescription')}
+          />
+        );
+      }
+    }
+
+    return null;
   };
 
   return (
@@ -76,9 +130,20 @@ const DuplicatesView: React.FC = () => {
       {results && results.duplicates.length > 0 ? (
         <ResultsCard title={t('analysis.duplicates.results')}>
           <div className="space-y-4">
-            <p className="text-slate-400">
-              {results.total_duplicates} {t('analysis.duplicates.duplicatesFound')}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-slate-400">
+                {results.total_duplicates} {t('analysis.duplicates.duplicatesFound')}
+              </p>
+              <div className="flex items-center space-x-2 text-sm text-slate-500">
+                <Search className="w-4 h-4" />
+                <span>
+                  {formData.publication 
+                    ? `${t('analysis.duplicates.publication')}: ${formData.publication.toUpperCase()}`
+                    : t('analysis.duplicates.allPublications')
+                  }
+                </span>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-700">
                 <thead className="bg-slate-800">
@@ -105,7 +170,7 @@ const DuplicatesView: React.FC = () => {
                 </thead>
                 <tbody className="bg-slate-900 divide-y divide-slate-700">
                   {results.duplicates.map((duplicate, index) => (
-                    <tr key={index}>
+                    <tr key={index} className="hover:bg-slate-800 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="font-mono text-xs bg-slate-700 px-2 py-1 rounded">
                           {duplicate.log_id}
@@ -118,13 +183,15 @@ const DuplicatesView: React.FC = () => {
                         {duplicate.edition}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                        {duplicate.publication.toUpperCase()}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {duplicate.publication.toUpperCase()}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                         {duplicate.uploaded_by}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-semibold text-orange-400">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                           {duplicate.duplicate_count}
                         </span>
                       </td>
@@ -135,9 +202,9 @@ const DuplicatesView: React.FC = () => {
             </div>
           </div>
         </ResultsCard>
-      ) : results ? (
-        <EmptyState message={t('analysis.duplicates.noDuplicatesDescription')} />
-      ) : null}
+      ) : (
+        renderEmptyState()
+      )}
 
       <InfoMessage message={t('analysis.duplicates.info')} />
     </div>
