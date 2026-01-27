@@ -15,12 +15,13 @@ import LoadingSpinner from '../LoadingSpinner';
 
 interface DuplicateMetadata extends Record<string, unknown> {
   log_id: string;
-  user: string;
+  date: string;
+  edition: string;
   publication: string;
-  process_date: string;
-  duplicates_count: number;
+  uploaded_by: string;
+  duplicate_count: number;
   duplicates_filter: string;
-  created_at: string;
+  duplicate_ids: string[];
 }
 
 interface DuplicateRecord extends Record<string, unknown> {
@@ -60,12 +61,12 @@ const DuplicatesAnalysis: React.FC = () => {
         start_date: filters.startDate || undefined,
         end_date: filters.endDate || undefined
       });
-      setMasterData((response as any).duplicates_metadata || []);
+      setMasterData((response as any).duplicates || []);
       
       addNotification({
         type: 'success',
         title: 'Datos cargados',
-        message: `Se encontraron ${(response as any).duplicates_metadata?.length || 0} registros de duplicados`
+        message: `Se encontraron ${(response as any).duplicates?.length || 0} registros de duplicados`
       });
     } catch (error) {
       addNotification({
@@ -105,9 +106,9 @@ const DuplicatesAnalysis: React.FC = () => {
     if (masterData.length === 0) return;
     
     const csvContent = [
-      'ID Log,Usuario,Publicación,Fecha Proceso,Cantidad Duplicados,Filtro,Fecha Creación',
+      'ID Log,Fecha,Edición,Publicación,Subido Por,Cantidad Duplicados,Filtro',
       ...masterData.map(item => 
-        `${item.log_id},${item.user},${item.publication},${item.process_date},${item.duplicates_count},"${item.duplicates_filter}",${item.created_at}`
+        `${item.log_id},${item.date},${item.edition},${item.publication},${item.uploaded_by},${item.duplicate_count},"${item.duplicates_filter}"`
       )
     ].join('\n');
     
@@ -147,64 +148,78 @@ const DuplicatesAnalysis: React.FC = () => {
   const masterColumns: TableColumn[] = [
     {
       key: 'log_id',
-      label: 'ID Log',
-      width: '120px',
-      filterable: true
-    },
-    {
-      key: 'user',
-      label: 'Usuario',
-      sortable: true,
-      filterable: true
-    },
-    {
-      key: 'publication',
-      label: 'Publicación',
-      sortable: true,
+      label: 'ID LOG',
+      width: '200px',
       filterable: true,
-      format: (value: unknown) => String(value).toUpperCase()
+      render: (value: unknown) => (
+        <span className="font-mono text-xs text-gray-700">
+          {String(value).substring(0, 8)}...
+        </span>
+      )
     },
     {
-      key: 'process_date',
-      label: 'Fecha Proceso',
+      key: 'date',
+      label: 'FECHA',
       sortable: true,
+      width: '120px',
       format: (value: unknown) => {
         if (typeof value === 'string') {
-          return new Date(value).toLocaleDateString('es-ES');
+          return value; // Ya está en formato YYYY-MM-DD
         }
         return String(value);
       }
     },
     {
-      key: 'duplicates_count',
-      label: 'Duplicados',
+      key: 'edition',
+      label: 'EDICIÓN',
+      align: 'center' as const,
+      width: '100px',
+      render: (value: unknown) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {String(value)}
+        </span>
+      )
+    },
+    {
+      key: 'publication',
+      label: 'PUBLICACIÓN',
+      sortable: true,
+      filterable: true,
+      width: '120px',
+      format: (value: unknown) => String(value).toUpperCase()
+    },
+    {
+      key: 'uploaded_by',
+      label: 'SUBIDO POR',
+      sortable: true,
+      filterable: true,
+      width: '150px',
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-700">
+          {String(value)}
+        </span>
+      )
+    },
+    {
+      key: 'duplicate_count',
+      label: 'CANTIDAD',
       align: 'center' as const,
       sortable: true,
+      width: '100px',
       render: (value: unknown) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-800">
           {String(value)}
         </span>
       )
     },
     {
       key: 'duplicates_filter',
-      label: 'Filtro Aplicado',
+      label: 'FILTRO APLICADO',
       render: (value: unknown) => (
         <span className="text-xs text-gray-600 max-w-xs truncate block" title={String(value)}>
-          {String(value)}
+          {String(value) || 'Sin filtro'}
         </span>
       )
-    },
-    {
-      key: 'created_at',
-      label: 'Fecha Creación',
-      sortable: true,
-      format: (value: unknown) => {
-        if (typeof value === 'string') {
-          return new Date(value).toLocaleString('es-ES');
-        }
-        return String(value);
-      }
     }
   ];
 

@@ -471,15 +471,23 @@ class PortAdaService:
             # Convert to our model format
             duplicates = []
             for row in results:
+                # PySpark Row objects use attribute access, not dict.get()
+                # Convert Row to dict first for easier access
+                try:
+                    row_dict = row.asDict() if hasattr(row, 'asDict') else dict(row)
+                except Exception as e:
+                    self.logger.warning(f"Could not convert row to dict: {e}, using attribute access")
+                    row_dict = {field: getattr(row, field, None) for field in row.__fields__}
+                
                 duplicates.append(DuplicateRecord(
-                    log_id=str(row.get('log_id', '')),
-                    date=str(row.get('date', '')),
-                    edition=str(row.get('edition', '')),
-                    publication=str(row.get('publication', '')),
-                    uploaded_by=str(row.get('uploaded_by', user_responsible or '')),
-                    duplicate_count=int(row.get('duplicate_count', 0)),
-                    duplicates_filter=str(row.get('duplicates_filter', '')),
-                    duplicate_ids=row.get('duplicate_ids', [])
+                    log_id=str(row_dict.get('log_id', '')),
+                    date=str(row_dict.get('date', '')),
+                    edition=str(row_dict.get('edition', '')),
+                    publication=str(row_dict.get('publication', '')),
+                    uploaded_by=str(row_dict.get('uploaded_by', user_responsible or '')),
+                    duplicate_count=int(row_dict.get('duplicate_count', 0)),
+                    duplicates_filter=str(row_dict.get('duplicates_filter', '')),
+                    duplicate_ids=row_dict.get('duplicate_ids', [])
                 ))
             
             self.logger.info(f"Found {len(duplicates)} duplicate records")
@@ -488,6 +496,9 @@ class PortAdaService:
         except Exception as e:
             error_msg = f"Error getting duplicates metadata: {str(e)}"
             self.logger.error(error_msg)
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+            raise wrap_portada_error(e, "duplicates metadata query")
             raise wrap_portada_error(e, "duplicates metadata query")
 
 
