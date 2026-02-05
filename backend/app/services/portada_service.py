@@ -28,10 +28,14 @@ except ImportError as e:
         BOAT_NEWS_TYPE = "boat_news"
         KNOWN_ENTITIES_TYPE = "known_entities"
         
+        def __init__(self, config=None):
+            pass
+            
         def protocol(self, protocol: str): return self
         def base_path(self, path: str): return self
         def app_name(self, name: str): return self
         def project_name(self, name: str): return self
+        def config(self, key: str, value: str): return self
         def build(self, layer_type: str): return MockLayer()
     
     class DataLakeMetadataManager:
@@ -41,10 +45,10 @@ except ImportError as e:
     class MockLayer:
         def start_session(self): pass
         def get_configuration(self): return {}
-        def ingest(self, dest_path: str, local_path: str): pass
+        def ingest(self, dest_path: str, local_path: str, **kwargs): pass
         def copy_ingested_entities(self, entity: str, local_path: str): return {}, ""
         def save_raw_entities(self, entity: str, data: dict): pass
-        def get_missing_dates_from_a_newspaper(self, data_path: str, publication_name: str): return []
+        def get_missing_dates_from_a_newspaper(self, data_path: str, **kwargs): return []
         def read_raw_data(self, newspaper: str): return MockDataFrame()
     
     class MockDataFrame:
@@ -401,8 +405,8 @@ class PortAdaService:
             if date_and_edition_list:
                 kwargs["date_and_edition_list"] = date_and_edition_list
             
-            # Call the library method without data_path as it's handled internally
-            return layer_boat_news.get_missing_dates_from_a_newspaper(**kwargs)
+            # Call the library method with data_path as required by the library (see main.py)
+            return layer_boat_news.get_missing_dates_from_a_newspaper(data_path, **kwargs)
         except Exception as e:
             # If any error occurs (including missing data), log it and return empty list
             if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):

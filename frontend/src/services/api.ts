@@ -419,6 +419,25 @@ class ApiService {
     return this.request<IngestionStatusResponse>(`/ingestion/status/${taskId}`);
   }
 
+  async getIngestionHistory(params?: {
+    page?: number;
+    page_size?: number;
+    status?: string;
+    filename?: string;
+    date_from?: string;
+    date_to?: string;
+    file_type?: string;
+  }) {
+    const urlParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) urlParams.append(key, String(value));
+      });
+    }
+    const queryString = urlParams.toString();
+    return this.request(`/ingestion/history${queryString ? `?${queryString}` : ''}`);
+  }
+
   async getIngestionTasks(status?: string) {
     const params = status ? `?status=${status}` : '';
     return this.request(`/ingestion/tasks/global${params}`);
@@ -443,8 +462,8 @@ class ApiService {
     return this.request<KnownEntitiesResponse>('/analysis/known-entities');
   }
 
-  async getKnownEntityDetail(name: string): Promise<KnownEntityDetailResponse> {
-    return this.request<KnownEntityDetailResponse>(`/analysis/known-entities/${name}`);
+  async getKnownEntityDetail(name: string): Promise<KnownEntitiesResponse> {
+    return this.request<KnownEntitiesResponse>(`/analysis/known-entities/${name}`);
   }
 
   async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {

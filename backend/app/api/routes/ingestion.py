@@ -2,7 +2,7 @@
 Data ingestion API routes
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from typing import Optional
@@ -24,6 +24,7 @@ from app.services.file_service import file_service
 from app.services.task_service import task_service, TaskType, TaskPriority, TaskInfo
 from app.core.exceptions import PortAdaBaseException, get_user_friendly_message, PortAdaValidationError
 from app.api.routes.auth import get_current_user
+from app.core.session_middleware import get_session_id
 from app.core.config import settings
 
 router = APIRouter()
@@ -88,6 +89,7 @@ async def process_ingestion_task(task_info: TaskInfo, ingestion_request: Ingesti
 
 @router.post("/upload", response_model=IngestionResponse)
 async def upload_data(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     ingestion_type: IngestionType = Form(...),
@@ -227,11 +229,14 @@ async def upload_data(
         # Save uploaded file
         file_path = await save_uploaded_file(file, str(uuid.uuid4()))
         
+        # Get session ID
+        session_id = get_session_id(request)
+        
         # Create task using task service
         task_title = f"{ingestion_type.value.title()} Ingestion"
         task_description = f"Ingesting {file.filename} as {ingestion_type.value}"
         
-        task_id = task_service.create_task(
+        task_id = await task_service.create_task(
             task_type=TaskType.INGESTION,
             title=task_title,
             description=task_description,
@@ -244,6 +249,7 @@ async def upload_data(
                 "entity_name": entity_name
             },
             user_id=current_user["username"],
+            session_id=session_id,
             file_name=file.filename,
             file_size=file_validation.file_size
         )

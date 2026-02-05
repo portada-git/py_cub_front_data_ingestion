@@ -67,8 +67,8 @@ export const DailyIngestionSummaryView: React.FC = () => {
               Newspaper
             </label>
             <PublicationSelector
-              selectedPublication={newspaper}
-              onPublicationChange={setNewspaper}
+              value={newspaper}
+              onChange={setNewspaper}
             />
           </div>
           <div className="md:col-span-1">

@@ -10,7 +10,6 @@ import {
   Home,
   Upload,
   BarChart3,
-  Database,
   Settings,
   LogOut,
   Menu,

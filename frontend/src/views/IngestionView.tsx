@@ -10,7 +10,6 @@ import { useSearchParams } from "react-router-dom";
 import { FileText, Database, AlertCircle, Clock } from "lucide-react";
 import { useNotificationStore } from "../store/useStore";
 import UnifiedFileUpload from "../components/BulkFileUpload";
-import PublicationSelector from "../components/PublicationSelector";
 import clsx from "clsx";
 
 type IngestionType = "extraction_data" | "known_entities";

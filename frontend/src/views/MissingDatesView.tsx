@@ -137,24 +137,12 @@ const MissingDatesView: React.FC = () => {
 
     // If we searched and got results but no missing dates, show success state
     if (results && results.missing_dates.length === 0) {
-      // Check if this might be because no data has been processed
-      if (results.total_missing === 0) {
-        return (
-          <NoDataState
-            title={t("analysis.missingDates.noDataTitle")}
-            description={t("analysis.missingDates.noDataDescription")}
-            actionText={t("analysis.missingDates.noDataAction")}
-            actionPath="/ingestion"
-          />
-        );
-      } else {
-        return (
-          <NoDuplicatesState
-            title={t("analysis.missingDates.noResultsTitle")}
-            description={t("analysis.missingDates.noResultsDescription")}
-          />
-        );
-      }
+      return (
+        <NoDuplicatesState
+          title={t("analysis.missingDates.noResultsTitle")}
+          description={t("analysis.missingDates.noResultsDescription")}
+        />
+      );
     }
 
     return null;
@@ -171,6 +159,7 @@ const MissingDatesView: React.FC = () => {
           onSubmit={handleSubmit}
           submitText={t("analysis.missingDates.executeQuery")}
           isLoading={isLoading}
+          disabled={!formData.publication}
           submitColor="blue"
         >
           <div className="space-y-4">

@@ -397,15 +397,14 @@ async def get_duplicates(
 ):
     """Get duplicates metadata with optional filtering"""
     try:
-        logger.info(f"Getting duplicates metadata for path: {request.data_path}")
+        logger.info(f"Getting duplicates metadata for publication: {request.publication}")
         
         # Get duplicates using PortAda service
         duplicates = await portada_service.get_duplicates_metadata(
             user_responsible=request.user_responsible,
             publication=request.publication,
             start_date=request.start_date,
-            end_date=request.end_date,
-            data_path=request.data_path
+            end_date=request.end_date
         )
         
         return DuplicatesResponse(

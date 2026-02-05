@@ -27,7 +27,6 @@ const DuplicatesView: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [formData, setFormData] = useState({
     publication: "",
-    dataPath: "ship_entries",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +46,6 @@ const DuplicatesView: React.FC = () => {
     const result = await withErrorHandling(async () => {
       return await apiService.getDuplicates({
         publication: formData.publication,
-        data_path: formData.dataPath,
       });
     });
 
@@ -132,15 +130,6 @@ const DuplicatesView: React.FC = () => {
                 className="md:col-span-2"
               />
             </div>
-
-            <InputField
-              label={t("ingestion.deltaLakePath") || "Ruta en Delta Lake"}
-              name="dataPath"
-              value={formData.dataPath}
-              onChange={handleInputChange}
-              placeholder="ship_entries"
-              description="Ruta de la subcarpeta para el análisis (ej. ship_entries o usuarios/nombre/ship_entries)"
-            />
           </div>
         </QueryForm>
       </AnalysisCard>
