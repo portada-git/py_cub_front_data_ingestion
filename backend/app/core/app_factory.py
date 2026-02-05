@@ -116,6 +116,10 @@ def create_app() -> FastAPI:
     
     app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
     
+    # Import and include metadata router
+    from app.api.routes import metadata
+    app.include_router(metadata.router, prefix="/api/metadata", tags=["metadata"])
+    
     # Add enhanced endpoints
     @app.get("/")
     async def root():

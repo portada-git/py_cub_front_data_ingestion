@@ -508,23 +508,73 @@ class ApiService {
     return this.request(`/analysis/duplicates/${logId}/details`);
   }
 
-  // Analysis - Storage and Process Metadata
-  async getStorageMetadata(request: any) {
-    return this.request('/analysis/storage-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  // Analysis - Storage and Process Metadata (NEW ENDPOINTS)
+  async getStorageMetadata(filters?: {
+    publication?: string;
+    table_name?: string;
+    process_name?: string;
+    stage?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/storage${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getFieldLineage(logId: string) {
-    return this.request(`/analysis/storage-metadata/${logId}/lineage`);
+  async getProcessMetadata(filters?: {
+    publication?: string;
+    process_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getProcessMetadata(request: any) {
-    return this.request('/analysis/process-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  async getFieldLineage(filters?: {
+    publication?: string;
+    table_name?: string;
+    field_name?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/lineage${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getMetadataPublications() {
+    return this.request('/metadata/publications');
+  }
+
+  async getMetadataSummary() {
+    return this.request('/metadata/summary');
+  }
+
+  async getFieldLineageMetadata(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/field-lineage${params}`);
+  }
+
+  async getDuplicatesMetadataNew(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/duplicates${params}`);
   }
 
   // Admin endpoints
