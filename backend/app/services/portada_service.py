@@ -93,17 +93,34 @@ class PortAdaService:
         )
     
     def _get_builder(self) -> PortadaBuilder:
-        """Get or create PortAda builder instance"""
+        """Get or create PortAda builder instance with configuration"""
         if self._builder is None:
             try:
+                # Load configuration from JSON file
+                with open(settings.PORTADA_CONFIG_PATH) as f:
+                    config = json.load(f)
+                
                 self._builder = (
-                    PortadaBuilder()
+                    PortadaBuilder(config)  # ✅ Pass config dictionary
                     .protocol("file://")
                     .base_path(self.base_path)
                     .app_name(self.app_name)
                     .project_name(self.project_name)
+                    .config("spark.sql.shuffle.partitions", "4")  # ✅ Configure Spark
                 )
-                self.logger.info("PortAda builder initialized successfully")
+                self.logger.info("PortAda builder initialized successfully with configuration")
+            except FileNotFoundError:
+                self.logger.error(f"Configuration file not found: {settings.PORTADA_CONFIG_PATH}")
+                raise PortAdaConfigurationError(
+                    f"Configuration file not found: {settings.PORTADA_CONFIG_PATH}",
+                    details={"config_path": settings.PORTADA_CONFIG_PATH}
+                )
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Invalid JSON in configuration file: {e}")
+                raise PortAdaConfigurationError(
+                    f"Invalid JSON in configuration file: {e}",
+                    details={"config_path": settings.PORTADA_CONFIG_PATH}
+                )
             except Exception as e:
                 self.logger.error(f"Failed to initialize PortAda builder: {e}")
                 raise wrap_portada_error(e, "builder initialization")
@@ -178,10 +195,17 @@ class PortAdaService:
             "message": error_msg
         }
 
-    def _perform_ingestion_sync(self, destination_path: str, temp_file_path: str) -> None:
-        """Synchronous ingestion operation to run in thread pool"""
+    def _perform_ingestion_sync(self, data_path: str, temp_file_path: str, user: str) -> None:
+        """
+        Synchronous ingestion operation to run in thread pool
+        
+        Args:
+            data_path: Path in the data lake (e.g., "ship_entries")
+            temp_file_path: Local path to the file to ingest
+            user: User responsible for the ingestion
+        """
         layer_news = self._get_news_layer()
-        layer_news.ingest(destination_path, local_path=temp_file_path, user="api_user")
+        layer_news.ingest(data_path, user=user, local_path=temp_file_path)
     
     async def ingest_extraction_data(self, file_path: str, newspaper: Optional[str] = None, data_path_delta_lake: str = "ship_entries") -> Dict[str, Any]:
         """
@@ -255,8 +279,8 @@ class PortAdaService:
                 
                 # Perform ingestion using PortAda library in thread pool to avoid blocking
                 # The library will automatically organize by publication_name, date, and edition
-                # Note: ingest signature is (*container_path, local_path: str, user: str)
-                await self._run_in_thread(self._perform_ingestion_sync, destination_path, temp_file_path)
+                # Note: ingest signature is (data_path: str, user: str, local_path: str)
+                await self._run_in_thread(self._perform_ingestion_sync, destination_path, temp_file_path, "api_user")
                 
                 self.logger.info(f"Successfully ingested {record_count} records to {destination_path}")
                 return {
@@ -325,11 +349,25 @@ class PortAdaService:
             self.logger.error(f"Error during known entities ingestion: {e}")
             return self._handle_ingestion_error(e, "known entities ingestion")
     
-    def _get_missing_dates_sync(self, data_path: str, publication_name: str) -> list:
+    def _get_missing_dates_sync(
+        self, 
+        data_path: str, 
+        publication_name: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> list:
         """Synchronous missing dates operation to run in thread pool"""
         try:
             layer_news = self._get_news_layer()
-            return layer_news.get_missing_dates_from_a_newspaper(data_path, publication_name=publication_name)
+            
+            # Build kwargs with optional parameters
+            kwargs = {"publication_name": publication_name}
+            if start_date:
+                kwargs["start_date"] = start_date
+            if end_date:
+                kwargs["end_date"] = end_date
+            
+            return layer_news.get_missing_dates_from_a_newspaper(data_path, **kwargs)
         except Exception as e:
             # If any error occurs (including missing data), log it and return empty list
             if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
@@ -363,8 +401,13 @@ class PortAdaService:
             self.logger.info(f"Getting missing dates for publication: {publication_name}")
             
             # Get missing dates using PortAda library in thread pool
+            # Pass optional start_date and end_date parameters
             missing_dates_result = await self._run_in_thread(
-                self._get_missing_dates_sync, data_path, publication_name
+                self._get_missing_dates_sync, 
+                data_path, 
+                publication_name,
+                start_date,  # ✅ Pass start_date
+                end_date     # ✅ Pass end_date
             )
             
             # Convert results to our model format

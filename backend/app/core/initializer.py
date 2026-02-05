@@ -101,6 +101,12 @@ class ApplicationInitializer:
             logger.info("Step 4: Validating directory structure...")
             directory_manager = self.service_container.get_service('directory_manager')
             
+            # Create Portada configuration directory
+            config_dir = Path(settings.storage.STORAGE_BASE_PATH) / "config"
+            if directory_manager.ensure_directory_exists(str(config_dir)):
+                initialization_results['directories_created'].append(str(config_dir))
+                logger.info(f"✅ Portada configuration directory created: {config_dir}")
+            
             required_directories = [
                 settings.storage.STORAGE_BASE_PATH,
                 settings.storage.INGESTION_STORAGE_PATH,
@@ -113,6 +119,14 @@ class ApplicationInitializer:
                     initialization_results['directories_created'].append(str(directory))
                 else:
                     initialization_results['errors'].append(f"Failed to create directory: {directory}")
+            
+            # Verify Portada configuration files
+            try:
+                settings._validate_portada_config_files()
+                logger.info("✅ Portada configuration files validated")
+            except ValueError as e:
+                initialization_results['warnings'].append(str(e))
+                logger.warning(f"⚠️  {e}")
             
             initialization_results['steps_completed'].append('directory_validation')
             logger.info("✅ Directory structure validation completed")

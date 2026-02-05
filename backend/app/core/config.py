@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     PORTADA_PROJECT_NAME: str = "portada_ingestion"
     INGESTION_FOLDER: str = str(STORAGE_DIR / "ingestion")
     
+    # PortAda Configuration Files - CRITICAL for portada_data_layer
+    PORTADA_CONFIG_PATH: str = str(STORAGE_DIR / "config" / "delta_data_layer_config.json")
+    PORTADA_SCHEMA_PATH: str = str(STORAGE_DIR / "config" / "schema.json")
+    PORTADA_MAPPING_PATH: str = str(STORAGE_DIR / "config" / "mapping_to_clean_chars.json")
+    
     # FastAPI Configuration
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
@@ -148,6 +153,9 @@ class Settings(BaseSettings):
         
         # Validate database configuration
         self._validate_database_config()
+        
+        # Validate Portada configuration files
+        self._validate_portada_config_files()
     
     def _validate_storage_config(self) -> None:
         """Validate storage configuration"""
@@ -179,6 +187,31 @@ class Settings(BaseSettings):
         
         if self.database.SESSION_CLEANUP_INTERVAL_HOURS <= 0:
             raise ValueError("SESSION_CLEANUP_INTERVAL_HOURS must be positive")
+    
+    def _validate_portada_config_files(self) -> None:
+        """Validate that Portada configuration files exist"""
+        config_files = {
+            'PORTADA_CONFIG_PATH': 'delta_data_layer_config.json',
+            'PORTADA_SCHEMA_PATH': 'schema.json',
+            'PORTADA_MAPPING_PATH': 'mapping_to_clean_chars.json'
+        }
+        
+        missing_files = []
+        for config_key, file_name in config_files.items():
+            file_path = Path(getattr(self, config_key))
+            if not file_path.exists():
+                missing_files.append(f"{file_name} (expected at: {file_path})")
+        
+        if missing_files:
+            error_msg = (
+                f"❌ Portada configuration files missing:\n"
+                f"  - {chr(10).join(missing_files)}\n\n"
+                f"These files are REQUIRED for portada_data_layer to function.\n"
+                f"Please create these files or copy them from the configuration repository."
+            )
+            raise ValueError(error_msg)
+        
+        print(f"✅ Portada configuration files validated successfully")
     
     class Config:
         env_file = ".env"
