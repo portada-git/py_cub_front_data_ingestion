@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, Search } from "lucide-react";
+import { Calendar, Search, Bug, ChevronDown, ChevronUp } from "lucide-react";
 import { apiService } from "../services/api";
 import { withErrorHandling } from "../utils/apiErrorHandler";
 import AnalysisCard from "../components/AnalysisCard";
@@ -13,11 +13,7 @@ import QueryForm from "../components/QueryForm";
 import PublicationSelector from "../components/PublicationSelector";
 import { SelectField, InputField } from "../components/FormField";
 import { ResultsCard, InfoMessage } from "../components/ResultsCard";
-import {
-  NoDataState,
-  NoDuplicatesState,
-  SearchState,
-} from "../components/EmptyStateCard";
+import { NoDuplicatesState, SearchState } from "../components/EmptyStateCard";
 
 interface MissingDateEntry {
   date: string;
@@ -30,7 +26,75 @@ interface MissingDatesResponse {
   query_type: string;
   missing_dates: MissingDateEntry[];
   total_missing: number;
+  debug_info?: {
+    requested_publication: string;
+    start_date?: string;
+    end_date?: string;
+    has_file_list: boolean;
+    data_path: string;
+    engine: string;
+    [key: string]: any;
+  };
 }
+
+const TechnicalDebugSection: React.FC<{
+  info?: MissingDatesResponse["debug_info"];
+  queryType?: string;
+}> = ({ info, queryType }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!info) return null;
+
+  return (
+    <div className="mt-4 border border-amber-200 bg-amber-50 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3 text-amber-800 font-medium text-sm hover:bg-amber-100 transition-colors"
+      >
+        <div className="flex items-center">
+          <Bug className="w-4 h-4 mr-2" />
+          <span>Información de depuración (Technical Debug)</span>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4" />
+        ) : (
+          <ChevronDown className="w-4 h-4" />
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="p-4 bg-white border-t border-amber-200 text-xs font-mono space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="text-gray-500">Query Type:</div>
+            <div className="font-bold">{queryType || "N/A"}</div>
+
+            <div className="text-gray-500">Publication:</div>
+            <div className="font-bold">{info.requested_publication}</div>
+
+            <div className="text-gray-500">Start Date:</div>
+            <div className="font-bold">{info.start_date || "None"}</div>
+
+            <div className="text-gray-500">End Date:</div>
+            <div className="font-bold">{info.end_date || "None"}</div>
+
+            <div className="text-gray-500">Has File List:</div>
+            <div className="font-bold">{info.has_file_list ? "Yes" : "No"}</div>
+
+            <div className="text-gray-500">Data Path:</div>
+            <div className="font-bold">{info.data_path}</div>
+
+            <div className="text-gray-500">Engine:</div>
+            <div className="font-bold">{info.engine}</div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400">
+            * 200 OK significa que la comunicación fue exitosa, pero la librería
+            no encontró huecos con estos parámetros.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MissingDatesView: React.FC = () => {
   const { t } = useTranslation();
@@ -300,9 +364,23 @@ const MissingDatesView: React.FC = () => {
               </table>
             </div>
           </div>
+          <TechnicalDebugSection
+            info={results.debug_info}
+            queryType={results.query_type}
+          />
         </ResultsCard>
       ) : (
-        renderEmptyState()
+        <>
+          {renderEmptyState()}
+          {results && results.missing_dates.length === 0 && (
+            <div className="max-w-4xl mx-auto">
+              <TechnicalDebugSection
+                info={results.debug_info}
+                queryType={results.query_type}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <InfoMessage message={t("analysis.missingDates.info")} />

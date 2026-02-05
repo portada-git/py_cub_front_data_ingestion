@@ -10,7 +10,6 @@ import {
   Search,
   AlertCircle,
   Loader2,
-  Eye,
   Download,
   ChevronRight,
   FileCode,

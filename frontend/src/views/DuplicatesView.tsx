@@ -29,11 +29,6 @@ const DuplicatesView: React.FC = () => {
     publication: "",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handlePublicationChange = (value: string) => {
     setFormData((prev) => ({ ...prev, publication: value }));
   };

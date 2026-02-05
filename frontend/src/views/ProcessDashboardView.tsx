@@ -10,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Trash2,
   Download,
   Filter,
   Search,
@@ -34,13 +33,10 @@ const ProcessDashboardView: React.FC = () => {
   const {
     tasks,
     historyTasks,
-    isPolling,
     isLoadingHistory,
     getStats,
     fetchHistory,
     getProcessingHistory,
-    clearOldHistory,
-    clearAllTasks,
   } = useUploadStore();
 
   // Enable global process syncing for this view
@@ -490,41 +486,6 @@ const ProcessDashboardView: React.FC = () => {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </button>
-
-            {stats.completedTasks &&
-              !isNaN(stats.completedTasks) &&
-              stats.completedTasks > 0 &&
-              activeTab === "active" && (
-                <button
-                  onClick={() => clearOldHistory(1)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Limpiar Completados
-                </button>
-              )}
-
-            {activeTab === "history" && history.length > 0 && (
-              <button
-                onClick={() => clearOldHistory(7)}
-                className="btn btn-secondary btn-sm"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Limpiar Historial Antiguo
-              </button>
-            )}
-
-            {stats.totalTasks &&
-              !isNaN(stats.totalTasks) &&
-              stats.totalTasks > 0 && (
-                <button
-                  onClick={clearAllTasks}
-                  className="btn btn-danger btn-sm"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Limpiar Todo
-                </button>
-              )}
           </div>
         </div>
       </div>

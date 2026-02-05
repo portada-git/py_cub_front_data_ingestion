@@ -262,14 +262,15 @@ async def get_daily_entries(
 ):
     """Get daily entry counts for a publication from real data"""
     try:
-        logger.info(f"Getting daily entries for publication: {request.publication} in path: {request.data_path}")
+        logger.info(f"Getting daily entries for publication: {request.publication}")
         
         # Get real data from PortAda service
         try:
             layer_news = portada_service._get_news_layer()
             
-            # Read real data from specified data_path
-            df = layer_news.read_raw_data(request.data_path)
+            # Use default data path
+            default_data_path = "ship_entries"
+            df = layer_news.read_raw_data(default_data_path)
             
             # Filter by publication (case-insensitive)
             publication_upper = request.publication.upper()
@@ -360,7 +361,7 @@ async def get_missing_dates(
         # Get missing dates using PortAda service
         missing_dates = await portada_service.get_missing_dates(
             publication_name=request.publication_name,
-            data_path=request.data_path,
+            data_path="ship_entries",
             start_date=request.start_date,
             end_date=request.end_date,
             date_and_edition_list=request.date_and_edition_list
@@ -376,7 +377,15 @@ async def get_missing_dates(
             query_type=query_type,
             missing_dates=missing_dates,
             total_missing=len(missing_dates),
-            date_range_analyzed=date_range_analyzed
+            date_range_analyzed=date_range_analyzed,
+            debug_info={
+                "requested_publication": request.publication_name,
+                "start_date": request.start_date,
+                "end_date": request.end_date,
+                "has_file_list": bool(request.date_and_edition_list),
+                "data_path": "ship_entries",
+                "engine": "portada-library-boat-news"
+            }
         )
         
     except PortAdaBaseException as e:

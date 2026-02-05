@@ -43,7 +43,6 @@ class MissingDateEntry(BaseModel):
 class MissingDatesRequest(BaseModel):
     """Request model for missing dates analysis"""
     publication_name: str = Field(..., description="Publication identifier (e.g., 'db', 'dm', 'sm')")
-    data_path: str = Field("ship_entries", description="Path to data in delta lake")
     
     # File-based query parameters
     date_file: Optional[str] = Field(None, description="Path to uploaded file with dates")
@@ -83,6 +82,7 @@ class MissingDatesResponse(BaseModel):
     missing_dates: List[MissingDateEntry] = Field(..., description="List of missing dates")
     total_missing: int = Field(..., description="Total number of missing dates")
     date_range_analyzed: Optional[str] = Field(None, description="Date range that was analyzed")
+    debug_info: Optional[Dict[str, Any]] = Field(None, description="Optional debug information")
 
 
 # Duplicates Models
