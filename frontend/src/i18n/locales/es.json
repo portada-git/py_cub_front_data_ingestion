@@ -296,5 +296,16 @@
       "noResults": "No se encontraron procesos",
       "infoMessage": "Esta consulta muestra información sobre los procesos de carga y transformación ejecutados en el sistema."
     }
+  },
+  "login": {
+    "subtitle": "Sistema de Ingestión y Análisis de Datos",
+    "instructions": "Ingresa tu usuario para acceder al sistema",
+    "userNotFound": "Usuario no encontrado",
+    "username": "Usuario",
+    "usernamePlaceholder": "Ingresa tu usuario",
+    "loggingIn": "Iniciando sesión...",
+    "login": "Iniciar sesión",
+    "footer": "Sistema de gestión de datos históricos de periódicos",
+    "copyright": "© 2024 PortAda. Sistema de Ingestión y Análisis de Datos."
   }
 }

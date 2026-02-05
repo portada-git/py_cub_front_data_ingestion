@@ -1,10 +1,6 @@
-/**
- * Breadcrumb navigation component
- * Provides hierarchical navigation context
- */
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, Home } from 'lucide-react';
 
 interface BreadcrumbItem {
@@ -18,13 +14,14 @@ interface BreadcrumbProps {
 }
 
 const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
+  const { t } = useTranslation();
   const location = useLocation();
 
   // Generate breadcrumb items from current path if not provided
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const breadcrumbs: BreadcrumbItem[] = [
-      { label: 'Inicio', href: '/dashboard' }
+      { label: t('navigation.dashboard'), href: '/dashboard' }
     ];
 
     let currentPath = '';
@@ -36,31 +33,31 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
       // Convert path segments to readable labels
       switch (segment) {
         case 'dashboard':
-          label = 'Dashboard';
+          label = t('navigation.dashboard');
           break;
         case 'ingestion':
-          label = 'Ingestión';
+          label = t('navigation.ingestion');
           break;
         case 'analysis':
-          label = 'Análisis';
+          label = t('navigation.analysis');
           break;
         case 'missing-dates':
-          label = 'Fechas Faltantes';
+          label = t('analysis.missingDates.title');
           break;
         case 'duplicates':
-          label = 'Duplicados';
+          label = t('analysis.duplicates.title');
           break;
         case 'daily-entries':
-          label = 'Entradas Diarias';
+          label = t('analysis.dailyEntries.title');
           break;
         case 'known-entities':
-          label = 'Entidades Conocidas';
+          label = t('analysis.knownEntities.title');
           break;
         case 'storage-metadata':
-          label = 'Metadatos de Almacenaje';
+          label = t('configuration.storageMetadata.title');
           break;
         case 'process-metadata':
-          label = 'Metadatos de Procesos';
+          label = t('configuration.processMetadata.title');
           break;
         default:
           label = segment.charAt(0).toUpperCase() + segment.slice(1);

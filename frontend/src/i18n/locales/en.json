@@ -277,5 +277,16 @@
       "noResults": "No processes found",
       "infoMessage": "This query shows information about executed loading and transformation processes."
     }
+  },
+  "login": {
+    "subtitle": "Data Ingestion and Analysis System",
+    "instructions": "Enter your username to access the system",
+    "userNotFound": "User not found",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "loggingIn": "Logging in...",
+    "login": "Login",
+    "footer": "Historical newspaper data management system",
+    "copyright": "© 2024 PortAda. Data Ingestion and Analysis System."
   }
 }

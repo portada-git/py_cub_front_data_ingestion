@@ -1,9 +1,5 @@
-/**
- * Duplicates Analysis component
- * Implements master table for duplicates metadata and detail view for duplicate records
- */
-
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Copy, Search, Download, Filter } from 'lucide-react';
 import { useNotificationStore } from '../../store/useStore';
 import { apiService } from '../../services/api';
@@ -42,6 +38,7 @@ interface DuplicateDetail {
 }
 
 const DuplicatesAnalysis: React.FC = () => {
+  const { t } = useTranslation();
   const { addNotification } = useNotificationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [masterData, setMasterData] = useState<DuplicateMetadata[]>([]);
@@ -65,14 +62,14 @@ const DuplicatesAnalysis: React.FC = () => {
       
       addNotification({
         type: 'success',
-        title: 'Datos cargados',
-        message: `Se encontraron ${(response as any).duplicates?.length || 0} registros de duplicados`
+        title: t('analysis.duplicates.dataLoaded'),
+        message: t('analysis.duplicates.foundRecords', { count: (response as any).duplicates?.length || 0 })
       });
     } catch (error) {
       addNotification({
         type: 'error',
-        title: 'Error al cargar datos',
-        message: error instanceof Error ? error.message : 'Error desconocido'
+        title: t('analysis.duplicates.loadError'),
+        message: error instanceof Error ? error.message : t('common.unknownError')
       });
     } finally {
       setIsLoading(false);
@@ -87,8 +84,8 @@ const DuplicatesAnalysis: React.FC = () => {
     } catch (error) {
       addNotification({
         type: 'error',
-        title: 'Error al cargar detalles',
-        message: error instanceof Error ? error.message : 'Error desconocido'
+        title: t('analysis.duplicates.detailError'),
+        message: error instanceof Error ? error.message : t('common.unknownError')
       });
       throw error;
     }
@@ -106,7 +103,7 @@ const DuplicatesAnalysis: React.FC = () => {
     if (masterData.length === 0) return;
     
     const csvContent = [
-      'ID Log,Fecha,Edición,Publicación,Subido Por,Cantidad Duplicados,Filtro',
+      'Log ID,Date,Edition,Publication,Uploaded By,Duplicate Count,Filter',
       ...masterData.map(item => 
         `${item.log_id},${item.date},${item.edition},${item.publication},${item.uploaded_by},${item.duplicate_count},"${item.duplicates_filter}"`
       )
@@ -116,7 +113,7 @@ const DuplicatesAnalysis: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `duplicados_metadata_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `duplicates_metadata_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,7 +125,7 @@ const DuplicatesAnalysis: React.FC = () => {
     if (!detail.duplicate_records || detail.duplicate_records.length === 0) return;
     
     const csvContent = [
-      'ID,Título,Fecha,Publicación,Grupo Duplicado,Puntuación Similitud,Vista Previa',
+      'ID,Title,Date,Publication,Duplicate Group,Similarity Score,Preview',
       ...detail.duplicate_records.map(record => 
         `${record.id},"${record.title}",${record.date},${record.publication},${record.duplicate_group},${record.similarity_score || ''},"${record.content_preview || ''}"`
       )
@@ -138,7 +135,7 @@ const DuplicatesAnalysis: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `duplicados_detalles_${detail.log_id}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `duplicates_details_${detail.log_id}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -148,7 +145,7 @@ const DuplicatesAnalysis: React.FC = () => {
   const masterColumns: TableColumn[] = [
     {
       key: 'log_id',
-      label: 'ID LOG',
+      label: t('analysis.duplicates.logId'),
       width: '200px',
       filterable: true,
       render: (value: unknown) => (
@@ -159,19 +156,19 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'date',
-      label: 'FECHA',
+      label: t('analysis.duplicates.date'),
       sortable: true,
       width: '120px',
       format: (value: unknown) => {
         if (typeof value === 'string') {
-          return value; // Ya está en formato YYYY-MM-DD
+          return value;
         }
         return String(value);
       }
     },
     {
       key: 'edition',
-      label: 'EDICIÓN',
+      label: t('analysis.duplicates.edition'),
       align: 'center' as const,
       width: '100px',
       render: (value: unknown) => (
@@ -182,7 +179,7 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'publication',
-      label: 'PUBLICACIÓN',
+      label: t('analysis.duplicates.publication'),
       sortable: true,
       filterable: true,
       width: '120px',
@@ -190,7 +187,7 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'uploaded_by',
-      label: 'SUBIDO POR',
+      label: t('analysis.duplicates.uploadedBy'),
       sortable: true,
       filterable: true,
       width: '150px',
@@ -202,7 +199,7 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'duplicate_count',
-      label: 'CANTIDAD',
+      label: t('analysis.duplicates.count'),
       align: 'center' as const,
       sortable: true,
       width: '100px',
@@ -214,10 +211,10 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'duplicates_filter',
-      label: 'FILTRO APLICADO',
+      label: t('analysis.duplicates.appliedFilter'),
       render: (value: unknown) => (
         <span className="text-xs text-gray-600 max-w-xs truncate block" title={String(value)}>
-          {String(value) || 'Sin filtro'}
+          {String(value) || t('analysis.duplicates.noFilter')}
         </span>
       )
     }
@@ -231,7 +228,7 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'title',
-      label: 'Título',
+      label: t('analysis.duplicates.title'),
       render: (value: unknown) => (
         <div className="max-w-xs">
           <p className="text-sm font-medium text-gray-900 truncate" title={String(value)}>
@@ -242,23 +239,23 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'date',
-      label: 'Fecha',
+      label: t('analysis.duplicates.date'),
       sortable: true,
       format: (value: unknown) => {
         if (typeof value === 'string') {
-          return new Date(value).toLocaleDateString('es-ES');
+          return new Date(value).toLocaleDateString();
         }
         return String(value);
       }
     },
     {
       key: 'publication',
-      label: 'Publicación',
+      label: t('analysis.duplicates.publication'),
       format: (value: unknown) => String(value).toUpperCase()
     },
     {
       key: 'duplicate_group',
-      label: 'Grupo',
+      label: t('analysis.duplicates.group'),
       render: (value: unknown) => (
         <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
           {String(value)}
@@ -267,7 +264,7 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'similarity_score',
-      label: 'Similitud',
+      label: t('analysis.duplicates.similarity'),
       align: 'center' as const,
       render: (value: unknown) => {
         if (value && typeof value === 'number') {
@@ -287,11 +284,11 @@ const DuplicatesAnalysis: React.FC = () => {
     },
     {
       key: 'content_preview',
-      label: 'Vista Previa',
+      label: t('analysis.duplicates.preview'),
       render: (value: unknown) => (
         <div className="max-w-xs">
           <p className="text-xs text-gray-600 truncate" title={String(value)}>
-            {String(value) || 'No disponible'}
+            {String(value) || t('analysis.duplicates.notAvailable')}
           </p>
         </div>
       )
@@ -304,7 +301,7 @@ const DuplicatesAnalysis: React.FC = () => {
     if (!detail || !detail.duplicate_records) {
       return (
         <div className="text-center py-8">
-          <p className="text-gray-500">No hay registros de duplicados disponibles</p>
+          <p className="text-gray-500">{t('analysis.duplicates.noDetailRecords')}</p>
         </div>
       );
     }
@@ -314,10 +311,10 @@ const DuplicatesAnalysis: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-lg font-medium text-gray-900">
-              Registros Duplicados
+              {t('analysis.duplicates.detailTitle')}
             </h4>
             <p className="text-sm text-gray-600">
-              {detail.total_records} registros encontrados
+              {t('analysis.duplicates.foundRecords', { count: detail.total_records })}
             </p>
           </div>
           
@@ -326,14 +323,14 @@ const DuplicatesAnalysis: React.FC = () => {
             className="btn btn-secondary btn-sm"
           >
             <Download className="w-4 h-4 mr-2" />
-            Exportar
+            {t('common.export')}
           </button>
         </div>
         
         <DataTable
           columns={detailColumns}
           data={detail.duplicate_records}
-          emptyMessage="No hay registros duplicados"
+          emptyMessage={t('analysis.duplicates.noDetailRecords')}
         />
       </div>
     );
@@ -343,9 +340,9 @@ const DuplicatesAnalysis: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Análisis de Duplicados</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('analysis.duplicates.title')}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Detectar y analizar registros duplicados
+          {t('analysis.duplicates.subtitle')}
         </p>
       </div>
 
@@ -353,13 +350,13 @@ const DuplicatesAnalysis: React.FC = () => {
       <div className="card">
         <h2 className="text-lg font-medium text-gray-900 mb-4">
           <Filter className="w-5 h-5 inline mr-2" />
-          Filtros de Búsqueda
+          {t('common.searchFilters')}
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label htmlFor="user" className="block text-sm font-medium text-gray-700 mb-2">
-              Usuario
+              {t('common.user')}
             </label>
             <input
               type="text"
@@ -367,20 +364,20 @@ const DuplicatesAnalysis: React.FC = () => {
               value={filters.user}
               onChange={(e) => handleFilterChange('user', e.target.value)}
               className="input"
-              placeholder="Nombre de usuario"
+              placeholder={t('common.usernamePlaceholder')}
             />
           </div>
           
           <div>
             <label htmlFor="publication" className="block text-sm font-medium text-gray-700 mb-2">
-              Publicación
+              {t('common.publication')}
             </label>
             <PublicationSelector
               value={filters.publication}
               onChange={(value) => handleFilterChange('publication', value)}
-              placeholder="Todas las publicaciones"
+              placeholder={t('common.allPublications')}
               includeAll={true}
-              allLabel="Todas las publicaciones"
+              allLabel={t('common.allPublications')}
             />
           </div>
           
@@ -390,7 +387,7 @@ const DuplicatesAnalysis: React.FC = () => {
               handleFilterChange('startDate', range?.startDate || '');
               handleFilterChange('endDate', range?.endDate || '');
             }}
-            label="Rango de Fechas"
+            label={t('common.dateRange')}
           />
           
           <div className="flex items-end space-x-2">
@@ -402,12 +399,12 @@ const DuplicatesAnalysis: React.FC = () => {
               {isLoading ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  Buscando...
+                  {t('common.searching')}
                 </>
               ) : (
                 <>
                   <Search className="w-4 h-4 mr-2" />
-                  Buscar
+                  {t('common.search')}
                 </>
               )}
             </button>
@@ -416,7 +413,7 @@ const DuplicatesAnalysis: React.FC = () => {
               <button
                 onClick={handleExportMaster}
                 className="btn btn-secondary"
-                title="Exportar lista principal"
+                title={t('analysis.duplicates.exportMasterList')}
               >
                 <Download className="w-4 h-4" />
               </button>
@@ -435,8 +432,8 @@ const DuplicatesAnalysis: React.FC = () => {
             const result = await loadDuplicateDetails(masterRow);
             return result as unknown as Record<string, unknown>;
           }}
-          masterTitle="Registros de Duplicados"
-          detailTitle="Detalles de Duplicados"
+          masterTitle={t('analysis.duplicates.masterTitle')}
+          detailTitle={t('analysis.duplicates.detailTitle')}
           expandMode="inline"
           loading={isLoading}
         />
@@ -445,17 +442,17 @@ const DuplicatesAnalysis: React.FC = () => {
           <div className="text-center py-12">
             <Copy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No hay datos de duplicados
+              {t('analysis.duplicates.noData')}
             </h3>
             <p className="text-gray-600 mb-4">
-              Usa los filtros para buscar registros de duplicados
+              {t('analysis.duplicates.useFilters')}
             </p>
             <button
               onClick={applyFilters}
               className="btn btn-primary"
             >
               <Search className="w-4 h-4 mr-2" />
-              Buscar duplicados
+              {t('analysis.duplicates.searchDuplicates')}
             </button>
           </div>
         </div>
