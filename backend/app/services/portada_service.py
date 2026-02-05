@@ -17,10 +17,12 @@ import functools
 # PortAda library imports
 try:
     from portada_data_layer import PortadaBuilder, DataLakeMetadataManager
+    from portada_data_layer.layer_boat_news.boat_news_layer import BOAT_NEWS_TYPE
     from pyspark.sql import functions as F
 except ImportError as e:
     logging.warning(f"PortAda library not available: {e}")
     # Mock classes for development
+    BOAT_NEWS_TYPE = "boat_news"
     class PortadaBuilder:
         NEWS_TYPE = "news"
         BOAT_NEWS_TYPE = "boat_news"
@@ -385,8 +387,13 @@ class PortAdaService:
         try:
             layer_boat_news = self._get_boat_news_layer()
             
-            # Build kwargs with optional parameters
-            kwargs = {"publication_name": publication_name}
+            # Build kwargs with required parameters according to library specs
+            # The library expects news_type=BOAT_NEWS_TYPE
+            kwargs = {
+                "publication_name": publication_name,
+                "news_type": BOAT_NEWS_TYPE
+            }
+            
             if start_date:
                 kwargs["start_date"] = start_date
             if end_date:
@@ -394,7 +401,8 @@ class PortAdaService:
             if date_and_edition_list:
                 kwargs["date_and_edition_list"] = date_and_edition_list
             
-            return layer_boat_news.get_missing_dates_from_a_newspaper(data_path, **kwargs)
+            # Call the library method without data_path as it's handled internally
+            return layer_boat_news.get_missing_dates_from_a_newspaper(**kwargs)
         except Exception as e:
             # If any error occurs (including missing data), log it and return empty list
             if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
@@ -443,7 +451,14 @@ class PortAdaService:
             if missing_dates_result:
                 for item in missing_dates_result:
                     # Handle different return formats from PortAda
-                    if isinstance(item, dict):
+                    if isinstance(item, (list, tuple)) and len(item) >= 2:
+                        # Tuple format: (date, edition)
+                        missing_dates.append(MissingDateEntry(
+                            date=str(item[0]),
+                            edition=str(item[1]),
+                            gap_duration=''
+                        ))
+                    elif isinstance(item, dict):
                         # Dictionary format
                         missing_dates.append(MissingDateEntry(
                             date=str(item.get('date', '')),

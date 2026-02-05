@@ -269,9 +269,9 @@ const MissingDatesView: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-slate-200 rounded-lg max-h-[600px] overflow-y-auto shadow-sm">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-semibold text-slate-900">
                       {t("analysis.missingDates.date")}
