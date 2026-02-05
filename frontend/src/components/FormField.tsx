@@ -3,8 +3,8 @@
  * Provides consistent dark-themed form field styling
  */
 
-import React from 'react';
-import { clsx } from 'clsx';
+import React from "react";
+import { clsx } from "clsx";
 
 interface FormFieldProps {
   label: string;
@@ -34,22 +34,20 @@ interface InputFieldProps {
   placeholder?: string;
   className?: string;
   required?: boolean;
+  min?: string;
+  max?: string;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
   label,
   description,
   children,
-  className
+  className,
 }) => {
   return (
-    <div className={clsx('space-y-2', className)}>
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-      </label>
-      {description && (
-        <p className="text-xs text-gray-500">{description}</p>
-      )}
+    <div className={clsx("space-y-2", className)}>
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      {description && <p className="text-xs text-gray-500">{description}</p>}
       {children}
     </div>
   );
@@ -63,7 +61,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   onChange,
   options,
   className,
-  required = false
+  required = false,
 }) => {
   return (
     <FormField label={label} description={description} className={className}>
@@ -88,12 +86,14 @@ export const InputField: React.FC<InputFieldProps> = ({
   label,
   description,
   name,
-  type = 'text',
+  type = "text",
   value,
   onChange,
   placeholder,
   className,
-  required = false
+  required = false,
+  min,
+  max,
 }) => {
   return (
     <FormField label={label} description={description} className={className}>
@@ -104,6 +104,8 @@ export const InputField: React.FC<InputFieldProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        min={min}
+        max={max}
         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
       />
     </FormField>

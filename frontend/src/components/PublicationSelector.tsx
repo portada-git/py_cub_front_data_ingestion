@@ -55,7 +55,11 @@ const PublicationSelector: React.FC<PublicationSelectorProps> = ({
       setPublications([
         { code: "db", name: "Diario de Barcelona", full_name: "Diario de Barcelona" },
         { code: "dm", name: "Diario de la Marina", full_name: "Diario de la Marina" },
-        { code: "sm", name: "Semanario Mercantil", full_name: "Semanario Mercantil" }
+        { code: "sm", name: "Le semaphore de Marseille", full_name: "Le semaphore de Marseille" },
+        { code: "gm", name: "Gaceta Mercantil", full_name: "Gaceta Mercantil" },
+        { code: "bp", name: "British Packet", full_name: "British Packet" },
+        { code: "en", name: "El Nacional", full_name: "El Nacional" },
+        { code: "lp", name: "La Prensa", full_name: "La Prensa" }
       ]);
     } finally {
       setIsLoading(false);

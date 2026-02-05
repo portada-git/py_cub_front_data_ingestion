@@ -8,77 +8,38 @@ from typing import Optional, List
 import logging
 from datetime import datetime
 
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.analysis import (
     StorageMetadataRequest, StorageMetadataResponse,
     ProcessMetadataRequest, ProcessMetadataResponse,
-    FieldLineageResponse
+    FieldLineageResponse, StorageRecord, FieldLineage
 )
+from app.services.portada_service import portada_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/storage")
+@router.get("/storage", response_model=StorageMetadataResponse)
 async def get_storage_metadata_get(
     publication: Optional[str] = Query(None, description="Filter by publication"),
     table_name: Optional[str] = Query(None, description="Filter by table name"),
     process_name: Optional[str] = Query(None, description="Filter by process name"),
-    stage: Optional[str] = Query(None, description="Filter by stage"),
-    start_date: Optional[str] = Query(None, description="Start date filter (ISO format)"),
-    end_date: Optional[str] = Query(None, description="End date filter (ISO format)"),
+    stage: int = Query(0, description="Filter by stage (default 0)"),
+    start_date: Optional[str] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date filter (YYYY-MM-DD)"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get storage metadata with optional filtering - GET endpoint for compatibility"""
+    """Get storage metadata with optional filtering"""
     try:
-        logger.info(f"Getting storage metadata - publication: {publication}")
+        logger.info(f"Getting storage metadata - table: {table_name}, stage: {stage}")
         
-        # For now, return mock data - in production, integrate with DataLakeMetadataManager
-        # Check if we have real data in the storage
-        storage_records = []
-        
-        # Try to get real data from the storage system
-        try:
-            from app.services.portada_service import PortadaService
-            from app.core.service_container import get_service_container
-            
-            container = get_service_container()
-            portada_service = container.get_service(PortadaService)
-            
-            # This would be the real implementation
-            # storage_records = portada_service.get_storage_metadata(
-            #     publication=publication,
-            #     table_name=table_name,
-            #     process_name=process_name,
-            #     stage=stage,
-            #     start_date=start_date,
-            #     end_date=end_date
-            # )
-            
-        except Exception as e:
-            logger.warning(f"Could not get real storage metadata: {e}")
-        
-        # If no real data, return mock data
-        if not storage_records:
-            storage_records = [
-                {
-                    "stored_log_id": f"storage_{i}_{publication or 'all'}",
-                    "publication_name": publication or f"Publication_{i}",
-                    "table_name": table_name or f"ship_entries_{i}",
-                    "process_name": process_name or f"ingestion_process_{i}",
-                    "stage": stage or "bronze",
-                    "records_count": 1000 + i * 100,
-                    "file_path": f"/data/portada_data/portada_ingestion/ingest/ship_entries/{publication or 'dm'}/part-{i:05d}.parquet",
-                    "stored_at": datetime.utcnow().isoformat(),
-                    "metadata": {
-                        "format": "parquet",
-                        "compression": "snappy",
-                        "schema_version": "1.0",
-                        "partition_columns": ["publication_name", "year", "month"]
-                    }
-                }
-                for i in range(1, 11)
-            ]
+        # Get real data from PortAda service
+        storage_records = await portada_service.get_storage_metadata(
+            table_name=table_name,
+            process_name=process_name,
+            stage=stage
+        )
         
         return {
             "storage_records": storage_records,
@@ -149,46 +110,22 @@ async def get_process_metadata_get(
         raise HTTPException(status_code=500, detail=f"Error retrieving process metadata: {str(e)}")
 
 
-@router.get("/lineage")
+@router.get("/lineage", response_model=FieldLineageResponse)
 async def get_field_lineage_get(
-    publication: Optional[str] = Query(None, description="Filter by publication"),
-    table_name: Optional[str] = Query(None, description="Filter by table name"),
-    field_name: Optional[str] = Query(None, description="Filter by field name"),
+    stored_log_id: str = Query(..., description="Filter by storage log identifier"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get field lineage metadata with optional filtering - GET endpoint for compatibility"""
+    """Get field lineage metadata for a specific storage record"""
     try:
-        logger.info(f"Getting field lineage - publication: {publication}")
+        logger.info(f"Getting field lineage for log_id: {stored_log_id}")
         
-        # Mock data for now - in production, integrate with field_lineage_log
-        lineage_records = [
-            {
-                "lineage_id": f"lineage_{i}_{publication or 'all'}",
-                "publication_name": publication or f"Publication_{i}",
-                "source_table": f"raw_data_{i}",
-                "target_table": table_name or f"ship_entries_{i}",
-                "field_name": field_name or f"ship_name_{i}",
-                "source_field": f"nombre_buque_{i}",
-                "transformation": f"clean_and_normalize_{i}",
-                "transformation_logic": f"TRIM(UPPER(source_field)) AS {field_name or f'ship_name_{i}'}",
-                "created_at": datetime.utcnow().isoformat(),
-                "lineage_path": [
-                    f"raw_data_{i}.nombre_buque_{i}",
-                    f"staging_{i}.ship_name_clean_{i}",
-                    f"ship_entries_{i}.{field_name or f'ship_name_{i}'}"
-                ]
-            }
-            for i in range(1, 11)
-        ]
+        # Get real data from PortAda service
+        field_lineages = await portada_service.get_field_lineage(stored_log_id)
         
         return {
-            "lineage_records": lineage_records,
-            "total_records": len(lineage_records),
-            "filters_applied": {
-                "publication": publication,
-                "table_name": table_name,
-                "field_name": field_name
-            }
+            "log_id": stored_log_id,
+            "field_lineages": field_lineages,
+            "total_fields": len(field_lineages)
         }
         
     except Exception as e:

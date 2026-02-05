@@ -544,19 +544,8 @@ class ApiService {
     return this.request(`/metadata/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getFieldLineage(filters?: {
-    publication?: string;
-    table_name?: string;
-    field_name?: string;
-  }) {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
-    }
-    const queryString = params.toString();
-    return this.request(`/metadata/lineage${queryString ? `?${queryString}` : ''}`);
+  async getFieldLineage(storedLogId: string) {
+    return this.request(`/metadata/lineage?stored_log_id=${storedLogId}`);
   }
 
   async getMetadataPublications() {
@@ -570,6 +559,22 @@ class ApiService {
   async getFieldLineageMetadata(publication?: string) {
     const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
     return this.request(`/metadata/field-lineage${params}`);
+  }
+
+  async getDailyIngestionSummary(request: {
+    newspaper: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('newspaper', request.newspaper);
+    if (request.start_date) {
+      params.append('start_date', request.start_date);
+    }
+    if (request.end_date) {
+      params.append('end_date', request.end_date);
+    }
+    return this.request(`/statistics/daily-ingestion-summary?${params.toString()}`);
   }
 
   async getDuplicatesMetadataNew(publication?: string) {

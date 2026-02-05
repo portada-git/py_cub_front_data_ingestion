@@ -40,9 +40,11 @@ async def get_publications(current_user: dict = Depends(get_current_user)):
             publications = [
                 {"code": "db", "name": "Diario de Barcelona", "full_name": "Diario de Barcelona"},
                 {"code": "dm", "name": "Diario de la Marina", "full_name": "Diario de la Marina"},
-                {"code": "sm", "name": "Semanario Mercantil", "full_name": "Semanario Mercantil"},
-                {"code": "lp", "name": "La Prensa", "full_name": "La Prensa"},
-                {"code": "el", "name": "El Liberal", "full_name": "El Liberal"}
+                {"code": "sm", "name": "Le semaphore de Marseille", "full_name": "Le semaphore de Marseille"},
+                {"code": "gm", "name": "Gaceta Mercantil", "full_name": "Gaceta Mercantil"},
+                {"code": "bp", "name": "British Packet", "full_name": "British Packet"},
+                {"code": "en", "name": "El Nacional", "full_name": "El Nacional"},
+                {"code": "lp", "name": "La Prensa", "full_name": "La Prensa"}
             ]
             
             return {
@@ -125,22 +127,22 @@ async def get_known_entities(current_user: dict = Depends(get_current_user)):
             # If no real files found, provide some realistic sample data
             if not entities:
                 entities = [
-                    {"name": "personas_historicas", "type": "PERSON", "count": 1247},
-                    {"name": "organizaciones_comerciales", "type": "ORG", "count": 892},
-                    {"name": "lugares_geograficos", "type": "LOC", "count": 2341},
-                    {"name": "fechas_importantes", "type": "DATE", "count": 5678},
-                    {"name": "productos_comerciales", "type": "PRODUCT", "count": 456},
-                    {"name": "monedas_historicas", "type": "MONEY", "count": 123}
+                    {"name": "flag", "type": "nacionalidad", "count": 0},
+                    {"name": "comodity", "type": "mercancias", "count": 0},
+                    {"name": "ship_type", "type": "tipos de barcos", "count": 0},
+                    {"name": "unit", "type": "unidades de medida", "count": 0},
+                    {"name": "port", "type": "puertos", "count": 0},
+                    {"name": "master_role", "type": "roles maestros", "count": 0}
                 ]
             
         except Exception as e:
             logger.warning(f"Could not get real entities data: {e}, using fallback data")
             # Fallback to enhanced mock data
             entities = [
-                {"name": "personas_historicas", "type": "PERSON", "count": 1247},
-                {"name": "organizaciones_comerciales", "type": "ORG", "count": 892},
-                {"name": "lugares_geograficos", "type": "LOC", "count": 2341},
-                {"name": "fechas_importantes", "type": "DATE", "count": 5678}
+                {"name": "flag", "type": "nacionalidad", "count": 0},
+                {"name": "comodity", "type": "mercancias", "count": 0},
+                {"name": "ship_type", "type": "tipos de barcos", "count": 0},
+                {"name": "unit", "type": "unidades de medida", "count": 0}
             ]
         
         entity_types = list(set(entity["type"] for entity in entities))
@@ -263,7 +265,8 @@ async def get_missing_dates(
             publication_name=request.publication_name,
             data_path=request.data_path,
             start_date=request.start_date,
-            end_date=request.end_date
+            end_date=request.end_date,
+            date_and_edition_list=request.date_and_edition_list
         )
         
         # Determine date range analyzed

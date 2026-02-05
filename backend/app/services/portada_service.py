@@ -17,11 +17,13 @@ import functools
 # PortAda library imports
 try:
     from portada_data_layer import PortadaBuilder, DataLakeMetadataManager
+    from pyspark.sql import functions as F
 except ImportError as e:
     logging.warning(f"PortAda library not available: {e}")
     # Mock classes for development
     class PortadaBuilder:
         NEWS_TYPE = "news"
+        BOAT_NEWS_TYPE = "boat_news"
         KNOWN_ENTITIES_TYPE = "known_entities"
         
         def protocol(self, protocol: str): return self
@@ -49,6 +51,14 @@ except ImportError as e:
         def groupBy(self, *cols): return self
         def agg(self, *funcs): return self
         def select(self, *cols): return self
+    
+    class F:
+        def to_date(self, *args): return self
+        def year(self, *args): return self
+        def month(self, *args): return self
+        def dayofmonth(self, *args): return self
+        def count(self, *args): return self
+        def alias(self, *args): return self
 
 from app.core.config import settings
 from app.core.exceptions import (
@@ -82,6 +92,7 @@ class PortAdaService:
         self.project_name = settings.PORTADA_PROJECT_NAME
         self._builder = None
         self._layer_news = None
+        self._layer_boat_news = None
         self._layer_entities = None
         self._metadata_manager = None
         self.logger = logging.getLogger(__name__)
@@ -138,6 +149,19 @@ class PortAdaService:
                 self.logger.error(f"Failed to initialize news layer: {e}")
                 raise wrap_portada_error(e, "news layer initialization")
         return self._layer_news
+
+    def _get_boat_news_layer(self):
+        """Get or create boat news layer instance"""
+        if self._layer_boat_news is None:
+            try:
+                builder = self._get_builder()
+                self._layer_boat_news = builder.build(builder.BOAT_NEWS_TYPE)
+                self._layer_boat_news.start_session()
+                self.logger.info("Boat News layer initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize boat news layer: {e}")
+                raise wrap_portada_error(e, "boat news layer initialization")
+        return self._layer_boat_news
     
     def _get_entities_layer(self):
         """Get or create entities layer instance"""
@@ -354,11 +378,12 @@ class PortAdaService:
         data_path: str, 
         publication_name: str,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
+        date_and_edition_list: Optional[str] = None
     ) -> list:
         """Synchronous missing dates operation to run in thread pool"""
         try:
-            layer_news = self._get_news_layer()
+            layer_boat_news = self._get_boat_news_layer()
             
             # Build kwargs with optional parameters
             kwargs = {"publication_name": publication_name}
@@ -366,8 +391,10 @@ class PortAdaService:
                 kwargs["start_date"] = start_date
             if end_date:
                 kwargs["end_date"] = end_date
+            if date_and_edition_list:
+                kwargs["date_and_edition_list"] = date_and_edition_list
             
-            return layer_news.get_missing_dates_from_a_newspaper(data_path, **kwargs)
+            return layer_boat_news.get_missing_dates_from_a_newspaper(data_path, **kwargs)
         except Exception as e:
             # If any error occurs (including missing data), log it and return empty list
             if "PATH_NOT_FOUND" in str(e) or "does not exist" in str(e):
@@ -406,8 +433,9 @@ class PortAdaService:
                 self._get_missing_dates_sync, 
                 data_path, 
                 publication_name,
-                start_date,  # ✅ Pass start_date
-                end_date     # ✅ Pass end_date
+                start_date,
+                end_date,
+                date_and_edition_list
             )
             
             # Convert results to our model format
@@ -542,7 +570,181 @@ class PortAdaService:
             import traceback
             self.logger.error(f"Full traceback: {traceback.format_exc()}")
             raise wrap_portada_error(e, "duplicates metadata query")
-            raise wrap_portada_error(e, "duplicates metadata query")
+
+    def _get_storage_metadata_sync(self, table_name: Optional[str] = None, process_name: Optional[str] = None, stage: int = 0) -> list:
+        """Synchronous storage metadata operation to run in thread pool"""
+        try:
+            metadata = self._get_metadata_manager()
+            df_sto = metadata.read_log("storage_log")
+            
+            # Apply filters
+            # Ensure stage is handled correctly
+            df_sto = df_sto.filter(f"stage={stage}")
+            
+            if table_name:
+                df_sto = df_sto.filter(f"table_name='{table_name}'")
+            
+            if process_name:
+                try:
+                    df_sto = df_sto.filter(f"process_name='{process_name}'")
+                except:
+                    df_sto = df_sto.filter(f"process='{process_name}'")
+            
+            return df_sto.collect()
+        except Exception as e:
+            self.logger.error(f"Error in _get_storage_metadata_sync: {e}")
+            return []
+
+    async def get_storage_metadata(
+        self, 
+        table_name: Optional[str] = None, 
+        process_name: Optional[str] = None, 
+        stage: int = 0
+    ) -> List[StorageRecord]:
+        """
+        Get storage metadata records
+        """
+        try:
+            results = await self._run_in_thread(
+                self._get_storage_metadata_sync, table_name, process_name, stage
+            )
+            
+            records = []
+            for row in results:
+                try:
+                    row_dict = row.asDict() if hasattr(row, 'asDict') else dict(row)
+                except:
+                    row_dict = {field: getattr(row, field, None) for field in getattr(row, '__fields__', [])}
+                
+                records.append(StorageRecord(
+                    log_id=str(row_dict.get('log_id', row_dict.get('stored_log_id', ''))),
+                    table_name=str(row_dict.get('table_name', '')),
+                    process_name=str(row_dict.get('process_name', row_dict.get('process', ''))),
+                    stage=int(row_dict.get('stage', 0)),
+                    records_stored=int(row_dict.get('records_count', row_dict.get('records_stored', 0))),
+                    storage_path=str(row_dict.get('file_path', row_dict.get('storage_path', ''))),
+                    created_at=row_dict.get('stored_at', row_dict.get('created_at', datetime.utcnow())),
+                    metadata=row_dict.get('metadata', {})
+                ))
+            
+            return records
+        except Exception as e:
+            self.logger.error(f"Error getting storage metadata: {e}")
+            raise wrap_portada_error(e, "storage metadata query")
+
+    def _get_field_lineage_sync(self, log_id: str) -> list:
+        """Synchronous field lineage operation to run in thread pool"""
+        try:
+            metadata = self._get_metadata_manager()
+            df_fl = metadata.read_log("field_lineage_log")
+            
+            # Filter by stored_log_id as requested
+            df_fl = df_fl.filter(f"stored_log_id='{log_id}'")
+            
+            return df_fl.collect()
+        except Exception as e:
+            self.logger.error(f"Error in _get_field_lineage_sync: {e}")
+            return []
+
+    async def get_field_lineage(self, log_id: str) -> List[FieldLineage]:
+        """
+        Get field lineage for a specific storage record
+        """
+        try:
+            results = await self._run_in_thread(self._get_field_lineage_sync, log_id)
+            
+            lineages = []
+            for row in results:
+                try:
+                    row_dict = row.asDict() if hasattr(row, 'asDict') else dict(row)
+                except:
+                    row_dict = {field: getattr(row, field, None) for field in getattr(row, '__fields__', [])}
+                
+                lineages.append(FieldLineage(
+                    field_name=str(row_dict.get('field_name', '')),
+                    source_table=str(row_dict.get('source_table', '')),
+                    target_table=str(row_dict.get('target_table', '')),
+                    transformation=row_dict.get('transformation'),
+                    lineage_path=row_dict.get('lineage_path', [])
+                ))
+            
+            return lineages
+        except Exception as e:
+            self.logger.error(f"Error getting field lineage: {e}")
+            raise wrap_portada_error(e, "field lineage query")
+
+    def _get_daily_ingestion_summary_sync(self, newspaper: str, start_date: Optional[str], end_date: Optional[str]) -> List[Dict[str, Any]]:
+        """Synchronous daily ingestion summary operation to run in thread pool"""
+        try:
+            layer_news = self._get_news_layer()
+            df = layer_news.read_raw_data(newspaper)
+
+            # Filter by date range if provided
+            if start_date:
+                df = df.filter(F.col("publication_date") >= start_date)
+            if end_date:
+                df = df.filter(F.col("publication_date") <= end_date)
+
+            # 1.- separar la fecha en columnas para el año, el mes y el dia
+            df = df.withColumn("data_dt", F.to_date("publication_date", "yyyy-MM-dd")) \
+                .withColumn("y", F.year("data_dt")) \
+                .withColumn("m", F.month("data_dt")) \
+                .withColumn("d", F.dayofmonth("data_dt"))
+
+            # 2.- Calculator totales y subtotales
+            dfr = df.rollup("y", "m", "d", "publication_edition") \
+                .agg(F.count("*").alias("t")).orderBy("y", "m", "d", "publication_edition")
+
+            # 3 gestionar resultados
+            results = []
+            for row in dfr.collect():
+                row_dict = row.asDict()
+                label = ""
+                if row_dict['y'] is None:
+                    label = "TOTAL"
+                elif row_dict['m'] is None:
+                    label = f"Total año {row_dict['y']}"
+                elif row_dict['d'] is None:
+                    label = f"Total año {row_dict['y']} y mes {row_dict['m']}"
+                elif row_dict['publication_edition'] is None:
+                    label = f"Total año {row_dict['y']}, mes {row_dict['m']} y dia {row_dict['d']}"
+                else:
+                    label = f"Total año {row_dict['y']}, mes {row_dict['m']}, dia {row_dict['d']} y edition {row_dict['publication_edition']}"
+                
+                results.append({
+                    "label": label,
+                    "count": row_dict['t'],
+                    "year": row_dict.get('y'),
+                    "month": row_dict.get('m'),
+                    "day": row_dict.get('d'),
+                    "edition": row_dict.get('publication_edition')
+                })
+            return results
+        except Exception as e:
+            self.logger.error(f"Error in _get_daily_ingestion_summary_sync: {e}")
+            return []
+
+    async def get_daily_ingestion_summary(
+        self,
+        newspaper: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get daily ingestion summary
+        """
+        try:
+            self.logger.info(f"Getting daily ingestion summary for newspaper: {newspaper}")
+            
+            results = await self._run_in_thread(
+                self._get_daily_ingestion_summary_sync, newspaper, start_date, end_date
+            )
+            
+            return results
+        except Exception as e:
+            error_msg = f"Error getting daily ingestion summary for {newspaper}: {str(e)}"
+            self.logger.error(error_msg)
+            raise wrap_portada_error(e, "daily ingestion summary query")
 
 
 # Global service instance

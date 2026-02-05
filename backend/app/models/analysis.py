@@ -47,6 +47,7 @@ class MissingDatesRequest(BaseModel):
     
     # File-based query parameters
     date_file: Optional[str] = Field(None, description="Path to uploaded file with dates")
+    date_and_edition_list: Optional[str] = Field(None, description="List of dates and editions as text (YAML/JSON/TXT)")
     file_format: Optional[FileFormat] = Field(None, description="Format of the uploaded file")
     
     # Date range query parameters

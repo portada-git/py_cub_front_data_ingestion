@@ -92,7 +92,7 @@ async def upload_data(
     file: UploadFile = File(...),
     ingestion_type: IngestionType = Form(...),
     publication: Optional[str] = Form(None),
-    entity_name: Optional[str] = Form("known_entities"),
+    entity_name: Optional[str] = Form("flag"),
     data_path_delta_lake: Optional[str] = Form("ship_entries"),
     current_user: dict = Depends(get_current_user)
 ):

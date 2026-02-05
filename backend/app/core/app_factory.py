@@ -16,7 +16,7 @@ from app.core.session_middleware import SessionMiddleware
 from app.core.service_container import get_service_container, cleanup_service_container
 from app.api.routes import auth, analysis
 from app.api.routes import ingestion  # Original ingestion routes
-from app.api.routes import enhanced_upload, history  # New enhanced routes
+from app.api.routes import enhanced_upload, history, statistics # New enhanced routes
 
 # Load environment variables
 load_dotenv()
@@ -115,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(history.router, prefix="/api/ingestion", tags=["ingestion-history"])
     
     app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+    app.include_router(statistics.router, prefix="/api/statistics", tags=["statistics"])
     
     # Import and include metadata router
     from app.api.routes import metadata
