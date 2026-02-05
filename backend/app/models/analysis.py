@@ -242,6 +242,14 @@ class KnownEntitiesResponse(BaseModel):
     entity_types: List[str] = Field(..., description="Types of entities found")
 
 
+class KnownEntityDetailResponse(BaseModel):
+    """Response model for detailed entity information"""
+    name: str = Field(..., description="Entity identifier")
+    type: str = Field(..., description="Entity type")
+    data: List[Dict[str, Any]] = Field(..., description="Content of the entity file")
+    total_records: int = Field(..., description="Total number of records in the entity")
+
+
 class DailyEntriesRequest(BaseModel):
     """Request model for daily entries analysis"""
     publication: str = Field(..., description="Publication identifier")

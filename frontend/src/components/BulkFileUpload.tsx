@@ -4,29 +4,29 @@
  * Integrado con el sistema de monitoreo persistente
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useDropzone } from 'react-dropzone';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  X, 
-  CheckCircle, 
-  AlertCircle, 
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useDropzone } from "react-dropzone";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  FileText,
+  X,
+  CheckCircle,
+  AlertCircle,
   FolderOpen,
   Play,
   ExternalLink,
-  ArrowRight
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { apiService } from '../services/api';
-import { IngestionResponse } from '../types';
-import { useUploadIntegration } from '../hooks/useUploadIntegration';
+  ArrowRight,
+} from "lucide-react";
+import { clsx } from "clsx";
+import { apiService } from "../services/api";
+import { IngestionResponse } from "../types";
+import { useUploadIntegration } from "../hooks/useUploadIntegration";
 
 interface FileUploadItem {
   id: string;
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: "pending" | "uploading" | "success" | "error";
   progress: number;
   result?: IngestionResponse;
   error?: string;
@@ -37,7 +37,7 @@ interface FileUploadItem {
 }
 
 interface UnifiedFileUploadProps {
-  ingestionType: 'extraction_data' | 'known_entities';
+  ingestionType: "extraction_data" | "known_entities";
   publication?: string;
   entityName?: string;
   maxConcurrentUploads?: number;
@@ -51,34 +51,34 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   entityName,
   maxConcurrentUploads = 5,
   onUploadComplete,
-  onFileProcessed
+  onFileProcessed,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [files, setFiles] = useState<FileUploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
-  
+
   // Integration with persistent upload store
   const { createUploadHandler } = useUploadIntegration({
     ingestionType,
     publication,
-    entityName
+    entityName,
   });
 
   // Calculate basic stats
   const stats = {
     total: files.length,
-    pending: files.filter(f => f.status === 'pending').length,
-    success: files.filter(f => f.status === 'success').length,
-    error: files.filter(f => f.status === 'error').length
+    pending: files.filter((f) => f.status === "pending").length,
+    success: files.filter((f) => f.status === "success").length,
+    error: files.filter((f) => f.status === "error").length,
   };
 
   // Auto-complete callback
   useEffect(() => {
-    if (stats.total > 0 && (stats.success + stats.error) === stats.total) {
+    if (stats.total > 0 && stats.success + stats.error === stats.total) {
       onUploadComplete?.(stats as any);
     }
   }, [stats.success, stats.error, stats.total, onUploadComplete]);
@@ -88,59 +88,76 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
   const validateFile = (file: File): string | null => {
     const maxSize = 50 * 1024 * 1024; // 50MB per file
     if (file.size > maxSize) {
-      return t('notifications.fileTooLarge', { filename: file.name });
+      return t("notifications.fileTooLarge", { filename: file.name });
     }
 
-    const validExtensions = ['.json'];
-    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const validExtensions =
+      ingestionType === "extraction_data" ? [".json"] : [".yaml", ".yml"];
+    const extension = "." + file.name.split(".").pop()?.toLowerCase();
     if (!validExtensions.includes(extension)) {
-      return t('notifications.invalidFormat', { filename: file.name });
+      return t("notifications.invalidFormat", {
+        filename: file.name,
+        expected: validExtensions.join(", "),
+      });
     }
 
     return null;
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles: FileUploadItem[] = [];
-    const errors: string[] = [];
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const newFiles: FileUploadItem[] = [];
+      const errors: string[] = [];
 
-    acceptedFiles.forEach(file => {
-      const error = validateFile(file);
-      if (error) {
-        errors.push(error);
-        return;
-      }
+      acceptedFiles.forEach((file) => {
+        const error = validateFile(file);
+        if (error) {
+          errors.push(error);
+          return;
+        }
 
-      // Check for duplicates
-      const isDuplicate = files.some(f => f.file.name === file.name && f.file.size === file.size);
-      if (isDuplicate) {
-        errors.push(t('notifications.duplicateFile', { filename: file.name }));
-        return;
-      }
+        // Check for duplicates
+        const isDuplicate = files.some(
+          (f) => f.file.name === file.name && f.file.size === file.size,
+        );
+        if (isDuplicate) {
+          errors.push(
+            t("notifications.duplicateFile", { filename: file.name }),
+          );
+          return;
+        }
 
-      newFiles.push({
-        id: generateFileId(),
-        file,
-        status: 'pending',
-        progress: 0,
-        retryCount: 0
+        newFiles.push({
+          id: generateFileId(),
+          file,
+          status: "pending",
+          progress: 0,
+          retryCount: 0,
+        });
       });
-    });
 
-    if (errors.length > 0) {
-      console.warn(t('notifications.filesRejected'), errors);
-    }
+      if (errors.length > 0) {
+        console.warn(t("notifications.filesRejected"), errors);
+      }
 
-    setFiles(prev => [...prev, ...newFiles]);
-  }, [files]);
+      setFiles((prev) => [...prev, ...newFiles]);
+    },
+    [files, ingestionType],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: true,
-    accept: {
-      'application/json': ['.json']
-    },
-    disabled: isProcessing
+    accept:
+      ingestionType === "extraction_data"
+        ? { "application/json": [".json"] }
+        : {
+            "application/x-yaml": [".yaml", ".yml"],
+            "text/yaml": [".yaml", ".yml"],
+            "text/x-yaml": [".yaml", ".yml"],
+            "text/plain": [".yaml", ".yml"],
+          },
+    disabled: isProcessing,
   });
 
   const uploadFile = async (fileItem: FileUploadItem): Promise<void> => {
@@ -148,11 +165,13 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
     abortControllersRef.current.set(fileItem.id, controller);
 
     try {
-      setFiles(prev => prev.map(f => 
-        f.id === fileItem.id 
-          ? { ...f, status: 'uploading', uploadStartTime: Date.now() }
-          : f
-      ));
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? { ...f, status: "uploading", uploadStartTime: Date.now() }
+            : f,
+        ),
+      );
 
       // Use integrated upload handler that connects to persistent store
       const uploadHandler = createUploadHandler(async (file, onProgress) => {
@@ -162,70 +181,75 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
           publication,
           entityName,
           undefined,
-          onProgress
+          onProgress,
         );
       });
 
       const uploadId = await uploadHandler(fileItem.file);
 
       // Mark as uploaded and processing - the persistent store will handle status updates
-      setFiles(prev => prev.map(f => 
-        f.id === fileItem.id 
-          ? { 
-              ...f, 
-              status: 'success', // Local success - file uploaded
-              progress: 100,
-              uploadEndTime: Date.now(),
-              uploadId // Store the persistent upload ID for reference
-            }
-          : f
-      ));
-      
-      onFileProcessed?.(fileItem);
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? {
+                ...f,
+                status: "success", // Local success - file uploaded
+                progress: 100,
+                uploadEndTime: Date.now(),
+                uploadId, // Store the persistent upload ID for reference
+              }
+            : f,
+        ),
+      );
 
+      onFileProcessed?.(fileItem);
     } catch (error) {
-      let errorMessage = t('notifications.unknownError');
-      
+      let errorMessage = t("notifications.unknownError");
+
       if (error instanceof Error) {
         // Handle structured error responses from backend
         const apiError = error as any;
         if (apiError.details && apiError.details.error_code) {
           switch (apiError.details.error_code) {
-            case 'PUBLICATION_REQUIRED':
-              errorMessage = t('notifications.publicationRequired');
+            case "PUBLICATION_REQUIRED":
+              errorMessage = t("notifications.publicationRequired");
               break;
-            case 'FILE_VALIDATION_ERROR':
-              errorMessage = apiError.details.errors ? 
-                apiError.details.errors.join('. ') : 
-                t('notifications.invalidFormat', { filename: fileItem.file.name });
+            case "FILE_VALIDATION_ERROR":
+              errorMessage = apiError.details.errors
+                ? apiError.details.errors.join(". ")
+                : t("notifications.invalidFormat", {
+                    filename: fileItem.file.name,
+                  });
               break;
-            case 'VALIDATION_ERROR':
-              errorMessage = apiError.details.errors ? 
-                apiError.details.errors.join('. ') : 
-                t('notifications.validationError');
+            case "VALIDATION_ERROR":
+              errorMessage = apiError.details.errors
+                ? apiError.details.errors.join(". ")
+                : t("notifications.validationError");
               break;
             default:
               errorMessage = apiError.details.message || error.message;
           }
-        } else if (error.message.includes('Publication is required')) {
-          errorMessage = t('notifications.publicationRequired');
-        } else if (error.message.includes('validation error')) {
-          errorMessage = t('notifications.validationError');
+        } else if (error.message.includes("Publication is required")) {
+          errorMessage = t("notifications.publicationRequired");
+        } else if (error.message.includes("validation error")) {
+          errorMessage = t("notifications.validationError");
         } else {
           errorMessage = error.message;
         }
       }
-      
-      setFiles(prev => prev.map(f => 
-        f.id === fileItem.id 
-          ? { 
-              ...f, 
-              status: 'error', 
-              error: errorMessage,
-              uploadEndTime: Date.now()
-            }
-            : f
-      ));
+
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? {
+                ...f,
+                status: "error",
+                error: errorMessage,
+                uploadEndTime: Date.now(),
+              }
+            : f,
+        ),
+      );
     } finally {
       abortControllersRef.current.delete(fileItem.id);
       activeUploadsRef.current.delete(fileItem.id);
@@ -237,11 +261,14 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
       return;
     }
 
-    const pendingFiles = files.filter(f => 
-      f.status === 'pending' && !activeUploadsRef.current.has(f.id)
+    const pendingFiles = files.filter(
+      (f) => f.status === "pending" && !activeUploadsRef.current.has(f.id),
     );
 
-    const filesToProcess = pendingFiles.slice(0, maxConcurrentUploads - activeUploadsRef.current.size);
+    const filesToProcess = pendingFiles.slice(
+      0,
+      maxConcurrentUploads - activeUploadsRef.current.size,
+    );
 
     for (const file of filesToProcess) {
       activeUploadsRef.current.add(file.id);
@@ -259,14 +286,14 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
     setIsProcessing(true);
     // Navigate to processes dashboard after a short delay to let uploads start
     setTimeout(() => {
-      navigate('/processes');
+      navigate("/processes");
     }, 1000);
   };
 
   const clearAll = () => {
     setIsProcessing(false);
     // Cancel active uploads
-    abortControllersRef.current.forEach(controller => controller.abort());
+    abortControllersRef.current.forEach((controller) => controller.abort());
     abortControllersRef.current.clear();
     activeUploadsRef.current.clear();
     setFiles([]);
@@ -278,39 +305,40 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
       <div
         {...getRootProps()}
         className={clsx(
-          'upload-zone border-2 border-dashed rounded-xl p-8 text-center cursor-pointer',
+          "upload-zone border-2 border-dashed rounded-xl p-8 text-center cursor-pointer",
           {
-            'drag-active': isDragActive,
-            'border-gray-300': !isDragActive && !isProcessing,
-            'border-gray-200 bg-gray-100 cursor-not-allowed': isProcessing
-          }
+            "drag-active": isDragActive,
+            "border-gray-300": !isDragActive && !isProcessing,
+            "border-gray-200 bg-gray-100 cursor-not-allowed": isProcessing,
+          },
         )}
       >
         <input {...getInputProps()} />
-        <FolderOpen className={clsx(
-          'w-16 h-16 mx-auto mb-4',
-          isDragActive ? 'text-blue-500' : 'text-gray-400'
-        )} />
+        <FolderOpen
+          className={clsx(
+            "w-16 h-16 mx-auto mb-4",
+            isDragActive ? "text-blue-500" : "text-gray-400",
+          )}
+        />
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          {isDragActive 
-            ? t('ingestion.dragFilesActive')
-            : t('ingestion.fileUpload')
-          }
+          {isDragActive
+            ? t("ingestion.dragFilesActive")
+            : t("ingestion.fileUpload")}
         </h3>
-        <p className="text-gray-600 mb-4">
-          {t('ingestion.dragFiles')}
-        </p>
-        {ingestionType === 'extraction_data' && (
+        <p className="text-gray-600 mb-4">{t("ingestion.dragFiles")}</p>
+        {ingestionType === "extraction_data" && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              💡 La publicación se extrae automáticamente de los datos JSON. Puedes seleccionar una publicación específica si deseas sobrescribir esta información.
+              💡 La publicación se extrae automáticamente de los datos JSON.
+              Puedes seleccionar una publicación específica si deseas
+              sobrescribir esta información.
             </p>
           </div>
         )}
         <div className="flex justify-center space-x-6 text-sm text-gray-500">
-          <span>• {t('ingestion.multipleFiles')}</span>
-          <span>• {t('ingestion.maxFileSize')}</span>
-          <span>• {t('ingestion.parallelProcessing')}</span>
+          <span>• {t("ingestion.multipleFiles")}</span>
+          <span>• {t("ingestion.maxFileSize")}</span>
+          <span>• {t("ingestion.parallelProcessing")}</span>
         </div>
       </div>
 
@@ -322,10 +350,11 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               <div className="flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className="font-medium text-gray-900">
-                  {files.length} archivo{files.length !== 1 ? 's' : ''} seleccionado{files.length !== 1 ? 's' : ''}
+                  {files.length} archivo{files.length !== 1 ? "s" : ""}{" "}
+                  seleccionado{files.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              
+
               {stats.error > 0 && (
                 <div className="flex items-center space-x-1 text-red-600">
                   <AlertCircle className="w-4 h-4" />
@@ -333,7 +362,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <button
                 onClick={clearAll}
@@ -341,7 +370,7 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               >
                 Limpiar
               </button>
-              
+
               <button
                 onClick={startProcessing}
                 disabled={stats.pending === 0}
@@ -353,28 +382,37 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
               </button>
             </div>
           </div>
-          
+
           {/* Simple file list */}
           <div className="mt-4 space-y-2">
             {files.map((fileItem) => (
-              <div key={fileItem.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+              <div
+                key={fileItem.id}
+                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <FileText className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-900">{fileItem.file.name}</span>
+                  <span className="text-sm text-gray-900">
+                    {fileItem.file.name}
+                  </span>
                   <span className="text-xs text-gray-500">
                     ({(fileItem.file.size / 1024 / 1024).toFixed(1)} MB)
                   </span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                  {fileItem.status === 'success' && (
+                  {fileItem.status === "success" && (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
-                  {fileItem.status === 'error' && (
+                  {fileItem.status === "error" && (
                     <AlertCircle className="w-4 h-4 text-red-500" />
                   )}
                   <button
-                    onClick={() => setFiles(prev => prev.filter(f => f.id !== fileItem.id))}
+                    onClick={() =>
+                      setFiles((prev) =>
+                        prev.filter((f) => f.id !== fileItem.id),
+                      )
+                    }
                     className="text-gray-400 hover:text-red-500"
                   >
                     <X className="w-4 h-4" />
@@ -391,14 +429,16 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="text-blue-900 font-medium">Procesando archivos...</span>
+            <span className="text-blue-900 font-medium">
+              Procesando archivos...
+            </span>
           </div>
-          
+
           <p className="text-blue-700 text-sm mb-4">
-            Los archivos se están procesando en segundo plano. 
-            Serás redirigido al dashboard de procesos para ver el progreso en tiempo real.
+            Los archivos se están procesando en segundo plano. Serás redirigido
+            al dashboard de procesos para ver el progreso en tiempo real.
           </p>
-          
+
           <Link
             to="/processes"
             className="inline-flex items-center text-blue-600 hover:text-blue-500 font-medium"
@@ -421,9 +461,10 @@ const UnifiedFileUpload: React.FC<UnifiedFileUploadProps> = ({
                 Monitoreo en Tiempo Real
               </h4>
               <p className="text-sm text-blue-700 mt-1">
-                Una vez que inicies el procesamiento, podrás monitorear el progreso en tiempo real 
-                desde el <strong>Dashboard de Procesos</strong>. Los archivos se procesan en segundo plano 
-                y puedes navegar libremente por la aplicación.
+                Una vez que inicies el procesamiento, podrás monitorear el
+                progreso en tiempo real desde el{" "}
+                <strong>Dashboard de Procesos</strong>. Los archivos se procesan
+                en segundo plano y puedes navegar libremente por la aplicación.
               </p>
             </div>
           </div>

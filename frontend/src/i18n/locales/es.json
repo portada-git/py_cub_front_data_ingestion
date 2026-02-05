@@ -10,6 +10,7 @@
     "knownEntities": "Entidades conocidas subidas",
     "storageMetadata": "Metadatos de almacenaje",
     "processMetadata": "Metadatos de procesos ejecutados",
+    "processes": "Procesos",
     "configuration": "Metadatos",
     "logout": "Cerrar sesión",
     "openMenu": "Abrir menú de navegación",
@@ -209,7 +210,7 @@
     "recordsProcessed": "Se procesaron {{count}} registros",
     "uploadError": "Error al subir archivo",
     "unknownError": "Error desconocido",
-    "invalidFormat": "Formato de archivo inválido",
+    "invalidFormat": "Formato de archivo inválido para {{filename}}. Formatos aceptados: {{expected}}",
     "formatRequired": "Para {{type}} se requiere formato {{format}}",
     "bulkUploadComplete": "Carga masiva completada",
     "bulkUploadStats": "Se procesaron {{success}} archivos exitosamente de {{total}} total. {{records}} registros procesados.",
@@ -307,5 +308,35 @@
     "login": "Iniciar sesión",
     "footer": "Sistema de gestión de datos históricos de periódicos",
     "copyright": "© 2024 PortAda. Sistema de Ingestión y Análisis de Datos."
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido, {{name}}. Aquí tienes un resumen del sistema.",
+    "loadError": "Error al cargar los datos del panel de control",
+    "systemStatus": "Estado del Sistema",
+    "knownEntities": "Entidades Conocidas",
+    "recentTasks": "Tareas Recientes",
+    "quickActions": "Acciones Rápidas",
+    "systemInfo": "Información del Sistema",
+    "status": {
+      "healthy": "Sistema operativo",
+      "warning": "Advertencias detectadas",
+      "error": "Errores del sistema",
+      "unknown": "Estado desconocido"
+    },
+    "actions": {
+      "uploadData": "Subir Datos",
+      "uploadDataDesc": "Cargar archivos de extracción o entidades",
+      "analyzeDates": "Analizar Fechas",
+      "analyzeDatesDesc": "Buscar fechas faltantes en los datos",
+      "viewDuplicates": "Ver Duplicados",
+      "viewDuplicatesDesc": "Revisar registros duplicados"
+    },
+    "info": {
+      "version": "Versión del Sistema",
+      "currentUser": "Usuario Actual",
+      "role": "Rol",
+      "lastUpdate": "Última Actualización"
+    }
   }
 }

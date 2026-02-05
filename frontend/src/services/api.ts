@@ -443,6 +443,10 @@ class ApiService {
     return this.request<KnownEntitiesResponse>('/analysis/known-entities');
   }
 
+  async getKnownEntityDetail(name: string): Promise<KnownEntityDetailResponse> {
+    return this.request<KnownEntityDetailResponse>(`/analysis/known-entities/${name}`);
+  }
+
   async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {
     return this.request<DailyEntriesResponse>('/analysis/daily-entries', {
       method: 'POST',

@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useStore";
 import { useSession } from "./hooks/useSession";
@@ -32,6 +33,7 @@ const ProtectedRouteWrapper: React.FC<{ children: React.ReactNode }> = ({
 
 const App: React.FC = () => {
   const { isAuthenticated, logout } = useAuthStore();
+  const { i18n } = useTranslation();
 
   // Initialize session management for authenticated users with longer intervals
   useSession({
@@ -101,7 +103,7 @@ const App: React.FC = () => {
             path="/*"
             element={
               <ProtectedRouteWrapper>
-                <Layout>
+                <Layout key={i18n.language}>
                   <Routes>
                     <Route
                       path="/"
@@ -118,7 +120,10 @@ const App: React.FC = () => {
                       path="/processes"
                       element={<ProcessDashboardView />}
                     />
-                    <Route path="/daily-ingestion-summary" element={<DailyIngestionSummaryView />} />
+                    <Route
+                      path="/daily-ingestion-summary"
+                      element={<DailyIngestionSummaryView />}
+                    />
                     <Route
                       path="*"
                       element={<Navigate to="/dashboard" replace />}

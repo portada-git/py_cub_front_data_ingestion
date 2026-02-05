@@ -5,16 +5,29 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Users, Search, AlertCircle, Loader2, Eye } from "lucide-react";
+import {
+  Users,
+  Search,
+  AlertCircle,
+  Loader2,
+  Eye,
+  Download,
+  ChevronRight,
+  FileCode,
+} from "lucide-react";
 import { apiService } from "../services/api";
 import { withErrorHandling } from "../utils/apiErrorHandler";
-import { KnownEntitiesResponse } from "../types";
-import DataExport from "../components/DataExport";
+import { KnownEntitiesResponse, KnownEntityDetailResponse } from "../types";
+import jsYaml from "js-yaml";
 
 const KnownEntitiesView: React.FC = () => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [results, setResults] = useState<KnownEntitiesResponse | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
+  const [entityDetail, setEntityDetail] =
+    useState<KnownEntityDetailResponse | null>(null);
   const [formData, setFormData] = useState({
     searchTerm: "",
     entityType: "",
@@ -55,6 +68,41 @@ const KnownEntitiesView: React.FC = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const fetchEntityDetail = async (name: string) => {
+    setSelectedEntity(name);
+    setIsDetailLoading(true);
+    setEntityDetail(null);
+
+    const result = await withErrorHandling(async () => {
+      return await apiService.getKnownEntityDetail(name);
+    });
+
+    if (result) {
+      setEntityDetail(result);
+    }
+
+    setIsDetailLoading(false);
+  };
+
+  const handleExportYaml = (entity: KnownEntityDetailResponse) => {
+    try {
+      const yamlContent = jsYaml.dump(entity.data);
+      const blob = new Blob([yamlContent], {
+        type: "text/yaml;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${entity.name}.yaml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting YAML:", error);
+    }
   };
 
   // Load entities on component mount
@@ -198,34 +246,29 @@ const KnownEntitiesView: React.FC = () => {
             </div>
           </div>
 
-          {/* Export Component */}
-          {filteredEntities.length > 0 && (
-            <DataExport
-              data={filteredEntities.map((entity) => ({
-                name: entity.name,
-                type: entity.type,
-                count: entity.count,
-              }))}
-              filename="entidades_conocidas"
-              title="Exportar Lista de Entidades"
-            />
-          )}
-
           {/* Entities Grid */}
           {filteredEntities.length > 0 ? (
             <div className="card p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                   <Users className="w-5 h-5 mr-2" />
                   Entidades ({filteredEntities.length})
                 </h3>
+                <p className="text-sm text-gray-500 italic">
+                  Haz clic en una entidad para ver sus detalles
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                 {filteredEntities.map((entity, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    onClick={() => fetchEntityDetail(entity.name)}
+                    className={`border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
+                      selectedEntity === entity.name
+                        ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
@@ -233,12 +276,11 @@ const KnownEntitiesView: React.FC = () => {
                           {entity.name}
                         </h4>
                       </div>
-                      <button
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded"
-                        title="Ver detalles"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="text-gray-400">
+                        <ChevronRight
+                          className={`w-5 h-5 transition-transform ${selectedEntity === entity.name ? "rotate-90 text-blue-500" : ""}`}
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -273,6 +315,87 @@ const KnownEntitiesView: React.FC = () => {
               <p className="text-gray-500">
                 No hay entidades que coincidan con los criterios de búsqueda.
               </p>
+            </div>
+          )}
+
+          {/* Entity Details Table */}
+          {(isDetailLoading || entityDetail) && (
+            <div className="card p-0 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <FileCode className="w-5 h-5 mr-2 text-blue-600" />
+                  {isDetailLoading
+                    ? "Cargando detalles..."
+                    : `Detalles de ${entityDetail?.name}`}
+                </h3>
+                {entityDetail && (
+                  <button
+                    onClick={() => handleExportYaml(entityDetail)}
+                    className="btn btn-secondary py-1 px-3 text-sm flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar YAML
+                  </button>
+                )}
+              </div>
+
+              {isDetailLoading ? (
+                <div className="p-12 text-center">
+                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    Recuperando registros de la entidad...
+                  </p>
+                </div>
+              ) : entityDetail && entityDetail.data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {Object.keys(entityDetail.data[0]).map((header) => (
+                          <th
+                            key={header}
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {entityDetail.data.map((row, idx) => (
+                        <tr
+                          key={idx}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          {Object.values(row).map((value, vIdx) => (
+                            <td
+                              key={vIdx}
+                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                            >
+                              {typeof value === "object"
+                                ? JSON.stringify(value)
+                                : String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      Mostrando {entityDetail.data.length} registros para la
+                      entidad {entityDetail.name}.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-12 text-center">
+                  <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    No hay registros detallados disponibles para esta entidad.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

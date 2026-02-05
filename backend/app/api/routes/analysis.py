@@ -15,7 +15,7 @@ from app.models.analysis import (
     DuplicatesRequest, DuplicatesResponse, DuplicateDetailsResponse,
     StorageMetadataRequest, StorageMetadataResponse, FieldLineageResponse,
     ProcessMetadataRequest, ProcessMetadataResponse,
-    KnownEntitiesResponse,
+    KnownEntitiesResponse, KnownEntityDetailResponse,
     DailyEntriesRequest, DailyEntriesResponse
 )
 from app.services.portada_service import portada_service
@@ -158,6 +158,103 @@ async def get_known_entities(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error retrieving known entities: {str(e)}")
 
 
+@router.get("/known-entities/{name}", response_model=KnownEntityDetailResponse)
+async def get_known_entity_details(name: str, current_user: dict = Depends(get_current_user)):
+    """Get detailed records for a specific known entity"""
+    try:
+        logger.info(f"Getting details for known entity: {name}")
+        
+        entities_folder = os.path.join(settings.PORTADA_BASE_PATH, "known_entities")
+        data = []
+        entity_type = "UNKNOWN"
+        
+        # Look for the file in the entities folder
+        file_found = False
+        if os.path.exists(entities_folder):
+            for ext in ['.yaml', '.yml', '.json']:
+                file_path = os.path.join(entities_folder, f"{name}{ext}")
+                if os.path.exists(file_path):
+                    file_found = True
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            if ext == '.json':
+                                content = json.load(f)
+                            else:
+                                content = yaml.safe_load(f)
+                            
+                            # Normalize content to a list of dicts
+                            if isinstance(content, list):
+                                data = content
+                            elif isinstance(content, dict):
+                                # If it's a dict, try to find a list inside or convert to list of items
+                                if 'items' in content and isinstance(content['items'], list):
+                                    data = content['items']
+                                else:
+                                    data = [{"key": k, "value": v} for k, v in content.items()]
+                            
+                            # Try to determine type from name (consistent with get_known_entities)
+                            if "person" in name.lower():
+                                entity_type = "PERSON"
+                            elif "org" in name.lower() or "company" in name.lower():
+                                entity_type = "ORG"
+                            elif "loc" in name.lower() or "place" in name.lower():
+                                entity_type = "LOC"
+                            elif "date" in name.lower():
+                                entity_type = "DATE"
+                            elif name.lower() in ["flag", "comodity", "ship_type", "unit", "port", "master_role"]:
+                                # Special mapping for known types if needed
+                                type_map = {
+                                    "flag": "nacionalidad",
+                                    "comodity": "mercancias",
+                                    "ship_type": "tipos de barcos",
+                                    "unit": "unidades de medida",
+                                    "port": "puertos",
+                                    "master_role": "roles maestros"
+                                }
+                                entity_type = type_map.get(name.lower(), "ENTITY")
+                            
+                    except Exception as e:
+                        logger.error(f"Error reading entity file {file_path}: {e}")
+                        raise HTTPException(status_code=500, detail=f"Error reading entity file: {str(e)}")
+                    break
+        
+        if not file_found:
+            # Check for mock data if file not found (for dev environment)
+            mock_entities = {
+                "flag": [{"code": "ES", "name": "España"}, {"code": "FR", "name": "Francia"}],
+                "comodity": [{"id": 1, "name": "Trigo"}, {"id": 2, "name": "Maíz"}],
+                "ship_type": [{"type": "Vapor", "description": "Barco de vapor"}, {"type": "Vela", "description": "Barco de vela"}],
+                "port": [{"name": "Barcelona", "country": "España"}, {"name": "Marsella", "country": "Francia"}]
+            }
+            
+            if name.lower() in mock_entities:
+                data = mock_entities[name.lower()]
+                type_map = {
+                    "flag": "nacionalidad",
+                    "comodity": "mercancias",
+                    "ship_type": "tipos de barcos",
+                    "unit": "unidades de medida",
+                    "port": "puertos",
+                    "master_role": "roles maestros"
+                }
+                entity_type = type_map.get(name.lower(), "ENTITY")
+            else:
+                raise HTTPException(status_code=404, detail=f"Entity {name} not found")
+        
+        return KnownEntityDetailResponse(
+            name=name,
+            type=entity_type,
+            data=data,
+            total_records=len(data)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting entity details: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving entity details: {str(e)}")
+
+
 @router.post("/daily-entries", response_model=DailyEntriesResponse)
 async def get_daily_entries(
     request: DailyEntriesRequest,
@@ -165,14 +262,14 @@ async def get_daily_entries(
 ):
     """Get daily entry counts for a publication from real data"""
     try:
-        logger.info(f"Getting daily entries for publication: {request.publication}")
+        logger.info(f"Getting daily entries for publication: {request.publication} in path: {request.data_path}")
         
         # Get real data from PortAda service
         try:
             layer_news = portada_service._get_news_layer()
             
-            # Read real data from ship_entries table
-            df = layer_news.read_raw_data("ship_entries")
+            # Read real data from specified data_path
+            df = layer_news.read_raw_data(request.data_path)
             
             # Filter by publication (case-insensitive)
             publication_upper = request.publication.upper()
@@ -300,14 +397,15 @@ async def get_duplicates(
 ):
     """Get duplicates metadata with optional filtering"""
     try:
-        logger.info("Getting duplicates metadata")
+        logger.info(f"Getting duplicates metadata for path: {request.data_path}")
         
         # Get duplicates using PortAda service
         duplicates = await portada_service.get_duplicates_metadata(
             user_responsible=request.user_responsible,
             publication=request.publication,
             start_date=request.start_date,
-            end_date=request.end_date
+            end_date=request.end_date,
+            data_path=request.data_path
         )
         
         return DuplicatesResponse(

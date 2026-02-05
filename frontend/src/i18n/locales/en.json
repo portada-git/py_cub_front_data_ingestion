@@ -10,6 +10,7 @@
     "knownEntities": "Uploaded known entities",
     "storageMetadata": "Storage metadata",
     "processMetadata": "Process execution metadata",
+    "processes": "Processes",
     "configuration": "Metadata",
     "logout": "Sign out",
     "openMenu": "Open navigation menu",
@@ -288,5 +289,35 @@
     "login": "Login",
     "footer": "Historical newspaper data management system",
     "copyright": "© 2024 PortAda. Data Ingestion and Analysis System."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}. Here is a summary of the system.",
+    "loadError": "Error loading dashboard data",
+    "systemStatus": "System Status",
+    "knownEntities": "Known Entities",
+    "recentTasks": "Recent Tasks",
+    "quickActions": "Quick Actions",
+    "systemInfo": "System Information",
+    "status": {
+      "healthy": "System operational",
+      "warning": "Warnings detected",
+      "error": "System errors",
+      "unknown": "Unknown status"
+    },
+    "actions": {
+      "uploadData": "Upload Data",
+      "uploadDataDesc": "Load extraction or entity files",
+      "analyzeDates": "Analyze Dates",
+      "analyzeDatesDesc": "Search for missing dates in the data",
+      "viewDuplicates": "View Duplicates",
+      "viewDuplicatesDesc": "Review duplicate records"
+    },
+    "info": {
+      "version": "System Version",
+      "currentUser": "Current User",
+      "role": "Role",
+      "lastUpdate": "Last Update"
+    }
   }
 }

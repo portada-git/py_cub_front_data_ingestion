@@ -158,6 +158,13 @@ export interface KnownEntitiesResponse {
   entity_types: string[];
 }
 
+export interface KnownEntityDetailResponse {
+  name: string;
+  type: string;
+  data: Array<Record<string, any>>;
+  total_records: number;
+}
+
 export interface DailyEntriesRequest {
   publication: string;
   start_date?: string;

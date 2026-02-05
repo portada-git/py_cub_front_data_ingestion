@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: t("navigation.dashboard"), href: "/dashboard", icon: Home },
     { name: t("navigation.ingestion"), href: "/ingestion", icon: Upload },
     {
-      name: "Procesos",
+      name: t("navigation.processes"),
       href: "/processes",
       icon: Activity,
       badge: uploadStats.activeTasks > 0 ? uploadStats.activeTasks : undefined,
@@ -73,6 +73,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: t("navigation.missingDates"), href: "/analysis/missing-dates" },
         { name: t("navigation.duplicates"), href: "/analysis/duplicates" },
         { name: t("navigation.dailyEntries"), href: "/analysis/daily-entries" },
+        {
+          name: t("navigation.knownEntities"),
+          href: "/analysis/known-entities",
+        },
       ],
     },
     {
@@ -87,10 +91,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {
           name: t("navigation.processMetadata"),
           href: "/configuration/process-metadata",
-        },
-        {
-          name: t("navigation.knownEntities"),
-          href: "/configuration/known-entities",
         },
       ],
     },
