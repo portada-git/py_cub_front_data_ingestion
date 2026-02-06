@@ -8,10 +8,6 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Install base heavy dependencies first (cached layer)
-COPY requirements-base.txt .
-RUN pip install --no-cache-dir -r requirements-base.txt
-
 # Install application dependencies (including git repo)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

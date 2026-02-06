@@ -42,8 +42,9 @@ La API utiliza un mecanismo simple basado en API Key para identificar a los usua
 - **Ingesta (POST)**: Requieren el header `x-api-key`.
   - **Header**: `x-api-key: <nombre_de_usuario>`
   - **Comportamiento**:
-    - Si el usuario no existe en PostgreSQL, **se crea automáticamente** al primer intento (Auto-SignUp).
-    - Si existe, se asocia la subida a su ID.
+    - Usamos **Redis** para gestionar las sesiones.
+    - Si el usuario no existe en el set de usuarios de Redis, **se crea automáticamente** al primer intento (Auto-SignUp implícito).
+    - Se registra la actividad asociada a este usuario.
 
 ---
 
