@@ -88,6 +88,7 @@ export interface MissingDatesRequest {
   publication_name: string;
   data_path?: string;
   date_file?: string;
+  date_and_edition_list?: string;
   file_format?: 'json' | 'yaml' | 'yml' | 'txt';
   start_date?: string;
   end_date?: string;
@@ -157,6 +158,13 @@ export interface KnownEntitiesResponse {
   entity_types: string[];
 }
 
+export interface KnownEntityDetailResponse {
+  name: string;
+  type: string;
+  data: Array<Record<string, any>>;
+  total_records: number;
+}
+
 export interface DailyEntriesRequest {
   publication: string;
   start_date?: string;
@@ -183,7 +191,46 @@ export interface Publication {
   full_name: string;
 }
 
+
+
 export interface PublicationsResponse {
+
   publications: Publication[];
+
   total: number;
+
 }
+
+
+
+export interface DailyIngestionSummaryRequest {
+
+  newspaper: string;
+
+  start_date?: string;
+
+  end_date?: string;
+
+}
+
+
+
+export interface DailyIngestionSummaryEntry {
+
+  label: string;
+
+  count: number;
+
+  year?: number;
+
+  month?: number;
+
+  day?: number;
+
+  edition?: string;
+
+}
+
+
+
+export type DailyIngestionSummaryResponse = DailyIngestionSummaryEntry[];

@@ -13,6 +13,7 @@ import {
   DuplicatesRequest,
   DuplicatesResponse,
   KnownEntitiesResponse,
+  KnownEntityDetailResponse,
   DailyEntriesRequest,
   DailyEntriesResponse,
   PublicationsResponse
@@ -116,7 +117,8 @@ class ApiService {
     };
     
     if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+      // Use x-api-key for backend authentication
+      headers['x-api-key'] = this.token;
     }
     
     return headers;
@@ -363,20 +365,33 @@ class ApiService {
 
   // Authentication
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    // Mock login for PortAda Backend (x-api-key)
+    // The backend auto-signs up users based on x-api-key, so we just accept any username
+    const mockResponse: LoginResponse = {
+        access_token: credentials.username,
+        token_type: 'api_key',
+        expires_in: 3600 * 24, // 24 hours
+        user_info: {
+            username: credentials.username,
+            role: 'user',
+            permissions: ['read', 'write', 'upload'],
+            full_name: credentials.username,
+            email: ''
+        }
+    };
     
     // Store the token
-    this.setToken(response.access_token);
+    this.setToken(mockResponse.access_token);
     
-    return response;
+    // Simulate network delay
+    await this.sleep(500);
+    
+    return mockResponse;
   }
 
   async logout(): Promise<void> {
     try {
-      await this.request('/auth/logout', {
+      await this.request('/ingest/auth/logout', {
         method: 'POST',
       });
     } finally {
@@ -386,68 +401,132 @@ class ApiService {
   }
 
   async getCurrentUser() {
-    return this.request('/auth/me');
+    return this.request('/ingest/auth/me');
   }
 
   // Ingestion
   async uploadFile(
     file: File, 
     ingestionType: 'extraction_data' | 'known_entities',
-    publication?: string,
+    _publication?: string,
     entityName?: string,
-    dataPathDeltaLake?: string,
+    _dataPathDeltaLake?: string,
     onProgress?: (progress: number) => void
   ): Promise<IngestionResponse> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('ingestion_type', ingestionType);
     
-    if (publication) {
-      formData.append('publication', publication);
+    let endpoint = '';
+    
+    if (ingestionType === 'extraction_data') {
+        // Backend /ingest/entry
+        formData.append('files', file);
+        endpoint = '/ingest/entry';
+    } else {
+        // Backend /ingest/entity
+        formData.append('file', file);
+        const typeParam = entityName || 'unknown';
+        endpoint = `/ingest/entity?type=${encodeURIComponent(typeParam)}`;
     }
-    if (entityName) {
-      formData.append('entity_name', entityName);
-    }
-    if (dataPathDeltaLake) {
-      formData.append('data_path_delta_lake', dataPathDeltaLake);
-    }
-
-    return this.uploadRequest<IngestionResponse>('/ingestion/upload', formData, onProgress);
+    
+    const response: any = await this.uploadRequest(endpoint, formData, onProgress);
+    
+    return {
+        task_id: response.file_ids ? response.file_ids[0] : response.file_id,
+        status: 'completed',
+        message: response.message,
+        records_processed: response.count || 1,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        file_validation: { is_valid: true, errors: [], warnings: [] } as any // force type
+    };
   }
 
-  async getIngestionStatus(taskId: string): Promise<IngestionStatusResponse> {
-    return this.request<IngestionStatusResponse>(`/ingestion/status/${taskId}`);
+  async listUploadFiles(params?: {
+    status?: string;
+    filename?: string;
+    date_from?: string;
+    date_to?: string;
+    file_type?: string;
+  }) {
+    const urlParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) urlParams.append(key, String(value));
+      });
+    }
+    const queryString = urlParams.toString();
+    // Mapping to audit process for history
+    return this.request(`/audit/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getIngestionTasks(status?: string) {
-    const params = status ? `?status=${status}` : '';
-    return this.request(`/ingestion/tasks/global${params}`);
+  async getIngestionTasks(_status?: string) {
+    return this.request(`/audit/process`);
   }
 
-  async cancelTask(taskId: string) {
-    return this.request(`/ingestion/tasks/${taskId}`, {
-      method: 'DELETE',
-    });
+  // Alias for backward compatibility
+  async getIngestionStatus(_status?: string): Promise<IngestionStatusResponse> {
+    return this.request<IngestionStatusResponse>(`/audit/process`);
+  }
+
+  // Alias for backward compatibility
+  async getIngestionHistory(params?: any) {
+    return this.listUploadFiles(params);
+  }
+
+  async cancelTask(_taskId: string) {
+    // Not implemented in backend
+    return Promise.resolve({ success: true, message: 'Not supported' });
   }
 
   async getProcessStatus() {
-    return this.request('/ingestion/process-status');
+    return this.request('/audit/process');
   }
 
   // Analysis - Basic Queries
   async getPublications(): Promise<PublicationsResponse> {
-    return this.request('/analysis/publications');
+    return this.request('/queries/publications');
   }
 
   async getKnownEntities(): Promise<KnownEntitiesResponse> {
-    return this.request<KnownEntitiesResponse>('/analysis/known-entities');
+    return this.request<KnownEntitiesResponse>('/queries/known-entities');
+  }
+
+  async getKnownEntityDetail(name: string): Promise<KnownEntityDetailResponse> {
+    return this.request<KnownEntityDetailResponse>(`/queries/known-entities/${name}`);
   }
 
   async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {
-    return this.request<DailyEntriesResponse>('/analysis/daily-entries', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+    const params = new URLSearchParams();
+    if (request.publication) params.append('publication', request.publication);
+    if (request.start_date) params.append('start_date', request.start_date);
+    if (request.end_date) params.append('end_date', request.end_date);
+    
+    // Backend returns [{y, m, d, count}, ...]
+    const rawData = await this.request<any[]>(`/queries/entries/count?${params.toString()}`);
+    
+    const daily_counts = Array.isArray(rawData) ? rawData.map(item => {
+        // Handle rollup rows where y,m,d might be null? Pyspark rollup includes nulls for subtotals.
+        // If y, m, d present:
+        if (item.y && item.m && item.d) {
+             const date = `${item.y}-${String(item.m).padStart(2, '0')}-${String(item.d).padStart(2, '0')}`;
+             return {
+                 date: date,
+                 count: item.count,
+                 publication: request.publication || ''
+             };
+        }
+        return null; // Skip rollup totals for now
+    }).filter(x => x !== null) as any[] : [];
+
+    return {
+      publication: request.publication || '',
+      daily_counts: daily_counts,
+      total_entries: daily_counts.reduce((sum, x) => sum + x.count, 0),
+      date_range: {
+        start_date: request.start_date || '',
+        end_date: request.end_date || ''
+      }
+    };
   }
 
   // Analysis - Missing Dates
@@ -458,38 +537,40 @@ class ApiService {
     });
   }
 
-  async analyzeMissingDatesFile(file: File, onProgress?: (progress: number) => void): Promise<MissingDatesResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    return this.uploadRequest<MissingDatesResponse>('/analysis/missing-dates', formData, onProgress);
+  async analyzeMissingDatesFile(file: File, publication: string, onProgress?: (progress: number) => void): Promise<MissingDatesResponse> {
+     return this.uploadDatesFile(file, publication, onProgress);
   }
 
   async analyzeMissingDatesRange(request: {
     start_date: string;
     end_date: string;
-    publication?: string;
+    publication: string;
   }): Promise<MissingDatesResponse> {
-    return this.request<MissingDatesResponse>('/analysis/missing-dates', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+    const params = new URLSearchParams();
+    params.append('publication', request.publication);
+    if(request.start_date) params.append('start_date', request.start_date);
+    if(request.end_date) params.append('end_date', request.end_date);
+
+    return this.request<any>(`/queries/gaps?${params.toString()}`, {
+      method: 'GET'
+    }) as unknown as Promise<MissingDatesResponse>;
   }
 
   async uploadDatesFile(file: File, publicationName: string, onProgress?: (progress: number) => void) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('publication_name', publicationName);
 
-    return this.uploadRequest('/analysis/missing-dates/upload', formData, onProgress);
+    return this.uploadRequest<MissingDatesResponse>(`/queries/gaps/file?publication=${encodeURIComponent(publicationName)}`, formData, onProgress);
   }
 
   // Analysis - Duplicates
   async getDuplicates(request: DuplicatesRequest): Promise<DuplicatesResponse> {
-    return this.request<DuplicatesResponse>('/analysis/duplicates', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+     return this.getDuplicatesMetadata({
+         user: request.user_responsible,
+         publication: request.publication,
+         start_date: request.start_date,
+         end_date: request.end_date
+     });
   }
 
   async getDuplicatesMetadata(request: {
@@ -497,34 +578,100 @@ class ApiService {
     publication?: string;
     start_date?: string;
     end_date?: string;
-  }) {
-    return this.request('/analysis/duplicates', {
-      method: 'POST',
-      body: JSON.stringify(request),
+  }): Promise<DuplicatesResponse> {
+    const params = new URLSearchParams();
+    if (request.publication) params.append('publication', request.publication);
+    if (request.user) params.append('user', request.user);
+    if (request.start_date) params.append('start_date', request.start_date);
+    if (request.end_date) params.append('end_date', request.end_date);
+
+    const data = await this.request<any[]>(`/audit/duplicates/metadata?${params.toString()}`, {
+      method: 'GET'
     });
+
+    return {
+      duplicates: data,
+      total_duplicates: data.length,
+      filters_applied: request
+    };
   }
 
   async getDuplicateDetails(logId: string) {
-    return this.request(`/analysis/duplicates/${logId}/details`);
+    return this.request(`/audit/duplicates/records/${logId}`);
   }
 
-  // Analysis - Storage and Process Metadata
-  async getStorageMetadata(request: any) {
-    return this.request('/analysis/storage-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  // Analysis - Storage and Process Metadata (NEW ENDPOINTS)
+  async getStorageMetadata(filters?: {
+    publication?: string;
+    table_name?: string;
+    process_name?: string;
+    stage?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/storage${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getFieldLineage(logId: string) {
-    return this.request(`/analysis/storage-metadata/${logId}/lineage`);
+  async getProcessMetadata(filters?: {
+    publication?: string;
+    process_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getProcessMetadata(request: any) {
-    return this.request('/analysis/process-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  async getFieldLineage(storedLogId: string) {
+    return this.request<any>(`/metadata/lineage?stored_log_id=${storedLogId}`);
+  }
+
+  async getMetadataPublications() {
+    return this.request('/metadata/publications');
+  }
+
+  async getMetadataSummary() {
+    return this.request('/metadata/summary');
+  }
+
+  async getFieldLineageMetadata(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/field-lineage${params}`);
+  }
+
+  async getDailyIngestionSummary(request: {
+    newspaper: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('newspaper', request.newspaper);
+    if (request.start_date) {
+      params.append('start_date', request.start_date);
+    }
+    if (request.end_date) {
+      params.append('end_date', request.end_date);
+    }
+    return this.request(`/statistics/daily-ingestion-summary?${params.toString()}`);
+  }
+
+  async getDuplicatesMetadataNew(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/duplicates${params}`);
   }
 
   // Admin endpoints
@@ -533,10 +680,6 @@ class ApiService {
     return this.request(`/ingestion/cleanup${params}`, {
       method: 'POST',
     });
-  }
-
-  async listUploadFiles() {
-    return this.request('/ingestion/files');
   }
 
   async cleanupTasks(maxAgeHours?: number) {

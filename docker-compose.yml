@@ -1,46 +1,41 @@
 version: '3.8'
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+  redis:
+    image: redis:7-alpine
     ports:
-      - "8001:8001"
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./portada_backend
+    ports:
+      - "8000:8000"
     environment:
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - PORTADA_BASE_PATH=/app/data
-      - PORTADA_APP_NAME=PortAdaAPI
-      - PORTADA_PROJECT_NAME=portada_ingestion
-      - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DELTA_LAKE_PATH=/app/delta_lake
+      - CONFIG_PATH=/app/config/delta_data_layer_config.json
     volumes:
-      - ./backend:/app
-      - portada_data:/app/data
-    networks:
-      - portada_network
-    restart: unless-stopped
+      # Map the physical Delta Lake path from host to container
+      - ./delta_lake:/app/delta_lake
+      # Map a config folder if you have one, or create it empty for now
+      - ./config:/app/config
+      - ./dummy_data:/data/dummy_data
+    depends_on:
+      - redis
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000/api/v1
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
-      - VITE_API_URL=http://localhost:8001
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - portada_network
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
     depends_on:
-      - backend
-    restart: unless-stopped
+      - api
 
 volumes:
-  portada_data:
-    driver: local
-
-networks:
-  portada_network:
-    driver: bridge
+  redis_data:

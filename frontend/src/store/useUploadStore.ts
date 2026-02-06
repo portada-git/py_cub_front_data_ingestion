@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiService } from '../services/api';
 
 export interface UploadTask {
   id: string;
@@ -37,8 +38,10 @@ export interface UploadStats {
 
 interface UploadState {
   tasks: UploadTask[];
+  historyTasks: UploadTask[];
   isPolling: boolean;
   pollInterval: number;
+  isLoadingHistory: boolean;
   
   // Actions
   addTask: (task: Omit<UploadTask, 'id' | 'startTime' | 'retryCount'>) => string;
@@ -49,6 +52,7 @@ interface UploadState {
   clearAllTasks: () => void;
   retryTask: (id: string) => void;
   cancelTask: (id: string) => void;
+  fetchHistory: () => Promise<void>;
   
   // Getters
   getTask: (id: string) => UploadTask | undefined;
@@ -69,8 +73,10 @@ export const useUploadStore = create<UploadState>()(
   persist(
     (set, get) => ({
       tasks: [],
+      historyTasks: [],
       isPolling: false,
       pollInterval: 3000, // 3 seconds
+      isLoadingHistory: false,
       
       addTask: (taskData) => {
         const id = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -87,6 +93,37 @@ export const useUploadStore = create<UploadState>()(
         }));
         
         return id;
+      },
+
+      fetchHistory: async () => {
+        set({ isLoadingHistory: true });
+        try {
+          const response: any = await apiService.getIngestionHistory({ page_size: 100 });
+          if (response.success && response.records) {
+            const history = response.records.map((record: any) => ({
+              id: `db_${record.id}`,
+              taskId: record.id,
+              fileName: record.original_filename,
+              fileSize: record.file_size,
+              status: (record.processing_status === 'uploaded' ? 'completed' : record.processing_status) as any,
+              progress: 100,
+              message: record.error_message || 'Completado desde el historial',
+              ingestionType: (record.metadata?.ingestion_type || 'extraction_data') as any,
+              publication: record.metadata?.publication,
+              entityName: record.metadata?.entity_name,
+              recordsProcessed: record.records_processed,
+              startTime: new Date(record.upload_timestamp),
+              endTime: record.processing_completed_at ? new Date(record.processing_completed_at) : new Date(record.upload_timestamp),
+              retryCount: record.retry_count || 0,
+              maxRetries: 3
+            }));
+            set({ historyTasks: history });
+          }
+        } catch (error) {
+          console.error('[UploadStore] Failed to fetch history:', error);
+        } finally {
+          set({ isLoadingHistory: false });
+        }
       },
       
       updateTask: (id, updates) => {
