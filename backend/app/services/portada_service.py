@@ -55,8 +55,13 @@ except ImportError as e:
         def filter(self, condition): return self
         def collect(self): return []
         def groupBy(self, *cols): return self
+        def count(self): return self
+        def orderBy(self, *cols, **kwargs): return self
+        def limit(self, n): return self
         def agg(self, *funcs): return self
         def select(self, *cols): return self
+        def withColumn(self, *args): return self
+        def alias(self, *args): return self
     
     class F:
         def to_date(self, *args): return self
@@ -102,6 +107,12 @@ class PortAdaService:
         self._layer_entities = None
         self._metadata_manager = None
         self.logger = logging.getLogger(__name__)
+        
+        # Log library availability status
+        if 'MockLayer' in globals():
+            self.logger.warning("🔸 PortAda service is running in MOCK mode (library not found)")
+        else:
+            self.logger.info("🚀 PortAda service initialized with REAL py-portada-data-layer")
         
         # Thread pool for CPU-intensive operations
         self._thread_pool = ThreadPoolExecutor(
@@ -483,30 +494,6 @@ class PortAdaService:
                             edition='U',
                             gap_duration=''
                         ))
-            
-            # --- DEBUG MODE FALLBACK ---
-            # If no results and it's a known test publication, provide mock gaps to verify UI
-            if not missing_dates and publication_name.lower() in ['db', 'dm', 'sm']:
-                self.logger.info(f"Debug Mode: Generating mock missing dates for {publication_name}")
-                # Generate some fake missing dates for UI verification
-                mock_start = start_date or "1903-01-01"
-                try:
-                    dt = datetime.strptime(mock_start, "%Y-%m-%d")
-                    # Generate 3 dates with some spacing
-                    for day_off in [4, 11, 19]:
-                        # Calculation that avoids day overflow issues for simple mock
-                        missing_dates.append(MissingDateEntry(
-                            date=(dt.replace(day=1) if dt.day > 20 else dt).strftime("%Y-%m-%d")[:-2] + f"{day_off:02d}",
-                            edition="U",
-                            gap_duration="24h"
-                        ))
-                except Exception:
-                    # Fallback static dates if parsing fails
-                    missing_dates = [
-                        MissingDateEntry(date="1903-01-10", edition="U", gap_duration="1 day"),
-                        MissingDateEntry(date="1903-01-15", edition="U", gap_duration="1 day")
-                    ]
-            # --- END DEBUG MODE ---
             
             self.logger.info(f"Found {len(missing_dates)} missing dates for {publication_name}")
             return missing_dates

@@ -296,15 +296,24 @@ async def get_daily_entries(
             total_entries = 0
             
             for row in daily_results:
-                date_str = row["publication_date"]
-                count = row["count"]
-                
-                daily_counts.append({
-                    "date": date_str,
-                    "count": count,
-                    "publication": request.publication
-                })
-                total_entries += count
+                try:
+                    # Handle both dict-like and object-like Rows
+                    if isinstance(row, dict):
+                        date_str = row.get("publication_date")
+                        count = row.get("count")
+                    else:
+                        date_str = getattr(row, "publication_date")
+                        count = getattr(row, "count")
+                    
+                    if date_str:
+                        daily_counts.append({
+                            "date": date_str,
+                            "count": count,
+                            "publication": request.publication
+                        })
+                        total_entries += count
+                except (AttributeError, KeyError):
+                    continue
             
             # Determine actual date range from data
             if daily_counts:

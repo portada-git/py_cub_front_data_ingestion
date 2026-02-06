@@ -80,9 +80,9 @@ const ProcessMetadataView: React.FC = () => {
     setIsLoading(true);
 
     const result = await withErrorHandling(async () => {
-      return await apiService.getProcessMetadata(
-        formData.publication || undefined,
-      );
+      return await apiService.getProcessMetadata({
+        publication: formData.publication || undefined,
+      });
     });
 
     if (result) {
