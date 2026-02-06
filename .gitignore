@@ -12,3 +12,6 @@ __pycache__
 logs/
 .storage/
 
+.delta_lake/
+.dades_persistents/
+ingest_zone
