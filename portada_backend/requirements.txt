@@ -1,2 +1,8 @@
 py-portada-data-layer @ git+https://github.com/portada-git/py_portada_data_layer.git
-py-portada-data-layer @ git+https://github.com/portada-git/py_portada_data_layer.git
+pyspark==3.5.3
+delta-spark==3.2.1
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.9
+redis==5.0.1
+pyyaml==6.0.1
