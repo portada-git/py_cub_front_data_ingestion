@@ -419,6 +419,25 @@ class ApiService {
     return this.request<IngestionStatusResponse>(`/ingestion/status/${taskId}`);
   }
 
+  async getIngestionHistory(params?: {
+    page?: number;
+    page_size?: number;
+    status?: string;
+    filename?: string;
+    date_from?: string;
+    date_to?: string;
+    file_type?: string;
+  }) {
+    const urlParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) urlParams.append(key, String(value));
+      });
+    }
+    const queryString = urlParams.toString();
+    return this.request(`/ingestion/history${queryString ? `?${queryString}` : ''}`);
+  }
+
   async getIngestionTasks(status?: string) {
     const params = status ? `?status=${status}` : '';
     return this.request(`/ingestion/tasks/global${params}`);
@@ -441,6 +460,10 @@ class ApiService {
 
   async getKnownEntities(): Promise<KnownEntitiesResponse> {
     return this.request<KnownEntitiesResponse>('/analysis/known-entities');
+  }
+
+  async getKnownEntityDetail(name: string): Promise<KnownEntitiesResponse> {
+    return this.request<KnownEntitiesResponse>(`/analysis/known-entities/${name}`);
   }
 
   async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {
@@ -508,23 +531,78 @@ class ApiService {
     return this.request(`/analysis/duplicates/${logId}/details`);
   }
 
-  // Analysis - Storage and Process Metadata
-  async getStorageMetadata(request: any) {
-    return this.request('/analysis/storage-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  // Analysis - Storage and Process Metadata (NEW ENDPOINTS)
+  async getStorageMetadata(filters?: {
+    publication?: string;
+    table_name?: string;
+    process_name?: string;
+    stage?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/storage${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getFieldLineage(logId: string) {
-    return this.request(`/analysis/storage-metadata/${logId}/lineage`);
+  async getProcessMetadata(filters?: {
+    publication?: string;
+    process_name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    const queryString = params.toString();
+    return this.request(`/metadata/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getProcessMetadata(request: any) {
-    return this.request('/analysis/process-metadata', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+  async getFieldLineage(storedLogId: string) {
+    return this.request(`/metadata/lineage?stored_log_id=${storedLogId}`);
+  }
+
+  async getMetadataPublications() {
+    return this.request('/metadata/publications');
+  }
+
+  async getMetadataSummary() {
+    return this.request('/metadata/summary');
+  }
+
+  async getFieldLineageMetadata(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/field-lineage${params}`);
+  }
+
+  async getDailyIngestionSummary(request: {
+    newspaper: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('newspaper', request.newspaper);
+    if (request.start_date) {
+      params.append('start_date', request.start_date);
+    }
+    if (request.end_date) {
+      params.append('end_date', request.end_date);
+    }
+    return this.request(`/statistics/daily-ingestion-summary?${params.toString()}`);
+  }
+
+  async getDuplicatesMetadataNew(publication?: string) {
+    const params = publication ? `?publication=${encodeURIComponent(publication)}` : '';
+    return this.request(`/metadata/duplicates${params}`);
   }
 
   // Admin endpoints

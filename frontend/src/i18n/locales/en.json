@@ -10,6 +10,8 @@
     "knownEntities": "Uploaded known entities",
     "storageMetadata": "Storage metadata",
     "processMetadata": "Process execution metadata",
+    "processes": "Processes",
+    "configuration": "Metadata",
     "logout": "Sign out",
     "openMenu": "Open navigation menu",
     "mainNavigation": "Main navigation",
@@ -54,31 +56,6 @@
       "edition": "Edition",
       "duration": "Duration",
       "info": "This analysis identifies missing dates in historical newspaper collections, helping to identify gaps in digitization."
-    },
-    "storageMetadata": {
-      "title": "Storage Metadata",
-      "subtitle": "Query information about data storage and transformations",
-      "tableName": "Table name",
-      "allTables": "All tables",
-      "tableNameDesc": "Name of the table to query data",
-      "responsibleProcess": "Responsible process",
-      "allProcesses": "All processes",
-      "responsibleProcessDesc": "Process responsible for processing",
-      "queryMetadata": "Query Metadata",
-      "results": "Metadata Results",
-      "noResults": "No metadata found",
-      "infoMessage": "This query uses the 'table_name_tag' and 'field_lineage_tag' tags to show detailed information about data storage. Only records with tags in the transformation metadata table are shown."
-    },
-    "processMetadata": {
-      "title": "Process Metadata",
-      "subtitle": "Query information about executed processes and transformations",
-      "processName": "Process name",
-      "allProcesses": "All processes",
-      "processNameDesc": "Filter by specific transformation process name",
-      "queryProcesses": "Query Processes",
-      "results": "Process Results",
-      "noResults": "No processes found",
-      "infoMessage": "This query uses the 'process_tag' tags to show information about executed transformation processes. Only records with tags in the primary process metadata table that don't need additional transformations are shown."
     },
     "duplicates": {
       "title": "Duplicates Query",
@@ -177,6 +154,12 @@
     "selectPublicationFirst": "Please select a publication before uploading files",
     "deltaLakePath": "Delta Lake Path",
     "entityName": "Entity Name",
+    "entity_flag": "nationality",
+    "entity_comodity": "commodities",
+    "entity_ship_type": "ship types",
+    "entity_unit": "measurement units",
+    "entity_port": "ports",
+    "entity_master_role": "master roles",
     "fileUpload": "Upload Files",
     "dragFiles": "Drag files here or click to select",
     "dragFilesActive": "Drop files here",
@@ -261,5 +244,80 @@
     "spanish": "Español",
     "english": "English",
     "greek": "Ελληνικά"
+  },
+  "configuration": {
+    "title": "System Metadata",
+    "subtitle": "Management and audit of technical metadata",
+    "storageMetadata": {
+      "title": "Storage Metadata",
+      "subtitle": "Query information about data storage and transformations",
+      "tableName": "Table name",
+      "allTables": "All tables",
+      "tableNameDesc": "Name of the table to query data",
+      "responsibleProcess": "Responsible process",
+      "allProcesses": "All processes",
+      "responsibleProcessDesc": "Process responsible for processing",
+      "queryMetadata": "Query Metadata",
+      "results": "Metadata Results",
+      "noResults": "No metadata found",
+      "fieldChanges": "Field Changes / Lineage",
+      "fieldName": "Field Name",
+      "source": "Source",
+      "target": "Target",
+      "transformation": "Transformation",
+      "infoMessage": "This query uses technical metadata tags to show detailed information about data storage."
+    },
+    "processMetadata": {
+      "title": "Process Metadata",
+      "subtitle": "Query information about executed processes and transformations",
+      "processName": "Process name",
+      "allProcesses": "All processes",
+      "processNameDesc": "Filter by specific transformation process name",
+      "queryProcesses": "Query Processes",
+      "results": "Process Results",
+      "noResults": "No processes found",
+      "infoMessage": "This query shows information about executed loading and transformation processes."
+    }
+  },
+  "login": {
+    "subtitle": "Data Ingestion and Analysis System",
+    "instructions": "Enter your username to access the system",
+    "userNotFound": "User not found",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "loggingIn": "Logging in...",
+    "login": "Login",
+    "footer": "Historical newspaper data management system",
+    "copyright": "© 2024 PortAda. Data Ingestion and Analysis System."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}. Here is a summary of the system.",
+    "loadError": "Error loading dashboard data",
+    "systemStatus": "System Status",
+    "knownEntities": "Known Entities",
+    "recentTasks": "Recent Tasks",
+    "quickActions": "Quick Actions",
+    "systemInfo": "System Information",
+    "status": {
+      "healthy": "System operational",
+      "warning": "Warnings detected",
+      "error": "System errors",
+      "unknown": "Unknown status"
+    },
+    "actions": {
+      "uploadData": "Upload Data",
+      "uploadDataDesc": "Load extraction or entity files",
+      "analyzeDates": "Analyze Dates",
+      "analyzeDatesDesc": "Search for missing dates in the data",
+      "viewDuplicates": "View Duplicates",
+      "viewDuplicatesDesc": "Review duplicate records"
+    },
+    "info": {
+      "version": "System Version",
+      "currentUser": "Current User",
+      "role": "Role",
+      "lastUpdate": "Last Update"
+    }
   }
 }

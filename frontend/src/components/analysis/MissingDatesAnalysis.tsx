@@ -1,9 +1,5 @@
-/**
- * Missing Dates Analysis component
- * Implements file upload for date lists and date range picker
- */
-
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Upload, Search, FileText, Download } from 'lucide-react';
 import { useNotificationStore } from '../../store/useStore';
 import { apiService } from '../../services/api';
@@ -23,6 +19,7 @@ interface LocalMissingDatesResponse {
 }
 
 const MissingDatesAnalysis: React.FC = () => {
+  const { t } = useTranslation();
   const { addNotification } = useNotificationStore();
   const [analysisType, setAnalysisType] = useState<'file' | 'range'>('file');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +46,8 @@ const MissingDatesAnalysis: React.FC = () => {
     if (!hasValidType && !hasValidExtension) {
       addNotification({
         type: 'error',
-        title: 'Formato de archivo no válido',
-        message: 'Por favor selecciona un archivo JSON, YAML o TXT'
+        title: t('notifications.invalidFormat'),
+        message: t('notifications.formatRequired', { type: 'JSON, YAML or TXT' })
       });
       return;
     }
@@ -79,8 +76,8 @@ const MissingDatesAnalysis: React.FC = () => {
     if (!selectedFile) {
       addNotification({
         type: 'error',
-        title: 'Archivo requerido',
-        message: 'Por favor selecciona un archivo con las fechas a analizar'
+        title: t('notifications.fileRequired'),
+        message: t('analysis.missingDates.fileRequiredMessage')
       });
       return;
     }
@@ -92,14 +89,14 @@ const MissingDatesAnalysis: React.FC = () => {
       
       addNotification({
         type: 'success',
-        title: 'Análisis completado',
-        message: `Se encontraron ${response.total_missing} fechas faltantes`
+        title: t('analysis.missingDates.analysisComplete'),
+        message: t('analysis.missingDates.foundMessage', { count: response.total_missing })
       });
     } catch (error) {
       addNotification({
         type: 'error',
-        title: 'Error en el análisis',
-        message: error instanceof Error ? error.message : 'Error desconocido'
+        title: t('analysis.missingDates.analysisError'),
+        message: error instanceof Error ? error.message : t('common.unknownError')
       });
     } finally {
       setIsLoading(false);
@@ -110,8 +107,8 @@ const MissingDatesAnalysis: React.FC = () => {
     if (!dateRange.startDate || !dateRange.endDate) {
       addNotification({
         type: 'error',
-        title: 'Fechas requeridas',
-        message: 'Por favor selecciona un rango de fechas válido'
+        title: t('analysis.missingDates.datesRequired'),
+        message: t('analysis.missingDates.datesRequiredMessage')
       });
       return;
     }
@@ -127,14 +124,14 @@ const MissingDatesAnalysis: React.FC = () => {
       
       addNotification({
         type: 'success',
-        title: 'Análisis completado',
-        message: `Se encontraron ${response.total_missing} fechas faltantes`
+        title: t('analysis.missingDates.analysisComplete'),
+        message: t('analysis.missingDates.foundMessage', { count: response.total_missing })
       });
     } catch (error) {
       addNotification({
         type: 'error',
-        title: 'Error en el análisis',
-        message: error instanceof Error ? error.message : 'Error desconocido'
+        title: t('analysis.missingDates.analysisError'),
+        message: error instanceof Error ? error.message : t('common.unknownError')
       });
     } finally {
       setIsLoading(false);
@@ -145,9 +142,9 @@ const MissingDatesAnalysis: React.FC = () => {
     if (!results) return;
     
     const csvContent = [
-      'Fecha,Edición,Duración',
+      'Date,Edition,Duration',
       ...results.missing_dates.map(item => 
-        `${item.date},${item.edition},${item.gap_duration || 'No especificado'}`
+        `${item.date},${item.edition},${item.gap_duration || 'Not specified'}`
       )
     ].join('\n');
     
@@ -155,7 +152,7 @@ const MissingDatesAnalysis: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fechas_faltantes_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `missing_dates_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -165,30 +162,30 @@ const MissingDatesAnalysis: React.FC = () => {
   const columns: TableColumn[] = [
     {
       key: 'date',
-      label: 'Fecha',
+      label: t('analysis.missingDates.date'),
       sortable: true,
       filterable: true,
       format: (value: unknown) => {
         if (typeof value === 'string') {
-          return new Date(value).toLocaleDateString('es-ES');
+          return new Date(value).toLocaleDateString();
         }
         return String(value);
       }
     },
     {
       key: 'edition',
-      label: 'Edición',
+      label: t('analysis.missingDates.edition'),
       sortable: true,
       filterable: true,
       format: (value: unknown) => String(value).toUpperCase()
     },
     {
       key: 'gap_duration',
-      label: 'Duración',
+      label: t('analysis.missingDates.duration'),
       filterable: true,
       render: (value: unknown) => (
         <span className="text-sm text-gray-600">
-          {String(value || 'No especificado')}
+          {String(value || t('common.notSpecified'))}
         </span>
       )
     }
@@ -198,15 +195,15 @@ const MissingDatesAnalysis: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Análisis de Fechas Faltantes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('analysis.missingDates.title')}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Buscar fechas y ediciones faltantes en los datos
+          {t('analysis.missingDates.subtitle')}
         </p>
       </div>
 
       {/* Analysis Type Selector */}
       <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Tipo de Análisis</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">{t('analysis.missingDates.analysisType')}</h2>
         <div className="flex space-x-4">
           <button
             onClick={() => setAnalysisType('file')}
@@ -217,7 +214,7 @@ const MissingDatesAnalysis: React.FC = () => {
             }`}
           >
             <Upload className="w-4 h-4 inline mr-2" />
-            Subir archivo de fechas
+            {t('analysis.missingDates.uploadFile')}
           </button>
           <button
             onClick={() => setAnalysisType('range')}
@@ -228,7 +225,7 @@ const MissingDatesAnalysis: React.FC = () => {
             }`}
           >
             <Calendar className="w-4 h-4 inline mr-2" />
-            Rango de fechas
+            {t('analysis.missingDates.dateRange')}
           </button>
         </div>
       </div>
@@ -236,9 +233,9 @@ const MissingDatesAnalysis: React.FC = () => {
       {/* File Upload Analysis */}
       {analysisType === 'file' && (
         <div className="card">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Subir Archivo de Fechas</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">{t('analysis.missingDates.uploadFileTitle')}</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Sube un archivo JSON, YAML o TXT con las fechas que quieres verificar
+            {t('analysis.missingDates.uploadFileSubtitle')}
           </p>
           
           <div
@@ -265,17 +262,17 @@ const MissingDatesAnalysis: React.FC = () => {
                   onClick={() => setSelectedFile(null)}
                   className="mt-2 text-sm text-red-600 hover:text-red-800"
                 >
-                  Remover archivo
+                  {t('common.removeFile')}
                 </button>
               </div>
             ) : (
               <div>
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-gray-600 mb-2">
-                  Arrastra un archivo aquí o haz clic para seleccionar
+                  {t('ingestion.dragFiles')}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Formatos soportados: JSON, YAML, TXT
+                  {t('ingestion.formatRequired')}: JSON, YAML, TXT
                 </p>
               </div>
             )}
@@ -292,7 +289,7 @@ const MissingDatesAnalysis: React.FC = () => {
                 htmlFor="file-upload"
                 className="mt-4 inline-block btn btn-secondary cursor-pointer"
               >
-                Seleccionar archivo
+                {t('ingestion.selectFile')}
               </label>
             )}
           </div>
@@ -307,12 +304,12 @@ const MissingDatesAnalysis: React.FC = () => {
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
-                    Analizando...
+                    {t('common.analyzing')}
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    Analizar fechas
+                    {t('analysis.missingDates.analyzeDates')}
                   </>
                 )}
               </button>
@@ -324,7 +321,7 @@ const MissingDatesAnalysis: React.FC = () => {
       {/* Date Range Analysis */}
       {analysisType === 'range' && (
         <div className="card">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Análisis por Rango de Fechas</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">{t('analysis.missingDates.rangeAnalysisTitle')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <DateRangePicker
               value={{ startDate: dateRange.startDate, endDate: dateRange.endDate }}
@@ -335,19 +332,19 @@ const MissingDatesAnalysis: React.FC = () => {
                   endDate: range?.endDate || '' 
                 }));
               }}
-              label="Rango de Fechas"
+              label={t('analysis.missingDates.dateRange')}
             />
             
             <div>
               <label htmlFor="publication" className="block text-sm font-medium text-gray-700 mb-2">
-                Publicación (opcional)
+                {t('analysis.missingDates.publication')}
               </label>
               <PublicationSelector
                 value={dateRange.publication}
                 onChange={(value) => setDateRange(prev => ({ ...prev, publication: value }))}
-                placeholder="Todas las publicaciones"
+                placeholder={t('analysis.missingDates.allPublications')}
                 includeAll={true}
-                allLabel="Todas las publicaciones"
+                allLabel={t('analysis.missingDates.allPublications')}
               />
             </div>
             
@@ -360,12 +357,12 @@ const MissingDatesAnalysis: React.FC = () => {
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
-                    Analizando...
+                    {t('common.analyzing')}
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    Analizar rango
+                    {t('analysis.missingDates.analyzeRange')}
                   </>
                 )}
               </button>
@@ -381,14 +378,14 @@ const MissingDatesAnalysis: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-medium text-gray-900">
-                  Resultados del Análisis
+                  {t('analysis.missingDates.resultsTitle')}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {results.total_missing} fechas faltantes encontradas
+                  {t('analysis.missingDates.foundMessage', { count: results.total_missing })}
                   {results.date_range && (
                     <span className="ml-2">
-                      (del {new Date(results.date_range.start_date).toLocaleDateString('es-ES')} 
-                      al {new Date(results.date_range.end_date).toLocaleDateString('es-ES')})
+                      ({t('common.from')} {new Date(results.date_range.start_date).toLocaleDateString()} 
+                      {t('common.to')} {new Date(results.date_range.end_date).toLocaleDateString()})
                     </span>
                   )}
                 </p>
@@ -400,7 +397,7 @@ const MissingDatesAnalysis: React.FC = () => {
                   className="btn btn-secondary"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Exportar CSV
+                  {t('common.exportCsv')}
                 </button>
               )}
             </div>
@@ -409,7 +406,7 @@ const MissingDatesAnalysis: React.FC = () => {
               columns={columns}
               data={results.missing_dates}
               loading={isLoading}
-              emptyMessage="No se encontraron fechas faltantes"
+              emptyMessage={t('analysis.missingDates.noResults')}
             />
           </div>
         </div>

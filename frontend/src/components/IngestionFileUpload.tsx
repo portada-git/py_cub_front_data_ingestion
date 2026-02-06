@@ -3,11 +3,11 @@
  * Handles extraction data and known entities with specific validation
  */
 
-import React from 'react';
-import FileUpload from './FileUpload';
-import { useNotificationStore } from '../store/useStore';
+import React from "react";
+import FileUpload from "./FileUpload";
+import { useNotificationStore } from "../store/useStore";
 
-export type IngestionType = 'extraction_data' | 'known_entities';
+export type IngestionType = "extraction_data" | "known_entities";
 
 interface IngestionFileUploadProps {
   ingestionType: IngestionType;
@@ -36,7 +36,7 @@ const IngestionFileUpload: React.FC<IngestionFileUploadProps> = ({
   uploadProgress = 0,
   uploadResult,
   disabled = false,
-  className = ''
+  className = "",
 }) => {
   const { addNotification } = useNotificationStore();
 
@@ -48,28 +48,30 @@ const IngestionFileUpload: React.FC<IngestionFileUploadProps> = ({
     maxFileSize: number;
   } => {
     switch (ingestionType) {
-      case 'extraction_data':
+      case "extraction_data":
         return {
-          acceptedFileTypes: { 'application/json': ['.json'] },
-          title: 'Arrastra un archivo JSON o haz clic para seleccionar',
-          description: 'Formato requerido: JSON con datos de extracción',
+          acceptedFileTypes: { "application/json": [".json"] },
+          title: "Arrastra un archivo JSON o haz clic para seleccionar",
+          description: "Formato requerido: JSON con datos de extracción",
           maxFileSize: 50 * 1024 * 1024, // 50MB for extraction data
         };
-      case 'known_entities':
+      case "known_entities":
         return {
-          acceptedFileTypes: { 
-            'application/x-yaml': ['.yaml', '.yml'],
-            'text/yaml': ['.yaml', '.yml']
+          acceptedFileTypes: {
+            "application/x-yaml": [".yaml", ".yml"],
+            "text/yaml": [".yaml", ".yml"],
+            "text/x-yaml": [".yaml", ".yml"],
+            "text/plain": [".yaml", ".yml"],
           },
-          title: 'Arrastra un archivo YAML o haz clic para seleccionar',
-          description: 'Formato requerido: YAML con entidades conocidas',
+          title: "Arrastra un archivo YAML o haz clic para seleccionar",
+          description: "Formato requerido: YAML con entidades conocidas",
           maxFileSize: 10 * 1024 * 1024, // 10MB for entities
         };
       default:
         return {
-          acceptedFileTypes: { 'application/json': ['.json'] },
-          title: 'Selecciona un archivo',
-          description: 'Formato no especificado',
+          acceptedFileTypes: { "application/json": [".json"] },
+          title: "Selecciona un archivo",
+          description: "Formato no especificado",
           maxFileSize: 10 * 1024 * 1024,
         };
     }
@@ -80,21 +82,24 @@ const IngestionFileUpload: React.FC<IngestionFileUploadProps> = ({
   const handleFileSelect = (file: File) => {
     // Additional validation based on ingestion type
     const fileName = file.name.toLowerCase();
-    
-    if (ingestionType === 'extraction_data' && !fileName.endsWith('.json')) {
+
+    if (ingestionType === "extraction_data" && !fileName.endsWith(".json")) {
       addNotification({
-        type: 'error',
-        title: 'Formato incorrecto',
-        message: 'Los datos de extracción deben estar en formato JSON'
+        type: "error",
+        title: "Formato incorrecto",
+        message: "Los datos de extracción deben estar en formato JSON",
       });
       return;
     }
 
-    if (ingestionType === 'known_entities' && !fileName.match(/\.(yaml|yml)$/)) {
+    if (
+      ingestionType === "known_entities" &&
+      !fileName.match(/\.(yaml|yml)$/)
+    ) {
       addNotification({
-        type: 'error',
-        title: 'Formato incorrecto',
-        message: 'Las entidades conocidas deben estar en formato YAML'
+        type: "error",
+        title: "Formato incorrecto",
+        message: "Las entidades conocidas deben estar en formato YAML",
       });
       return;
     }
@@ -108,9 +113,9 @@ const IngestionFileUpload: React.FC<IngestionFileUploadProps> = ({
         ingestionType,
         fileName: file.name,
         fileSize: file.size,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       await onUpload(file, metadata);
     }
   };

@@ -43,10 +43,10 @@ class MissingDateEntry(BaseModel):
 class MissingDatesRequest(BaseModel):
     """Request model for missing dates analysis"""
     publication_name: str = Field(..., description="Publication identifier (e.g., 'db', 'dm', 'sm')")
-    data_path: str = Field("ship_entries", description="Path to data in delta lake")
     
     # File-based query parameters
     date_file: Optional[str] = Field(None, description="Path to uploaded file with dates")
+    date_and_edition_list: Optional[str] = Field(None, description="List of dates and editions as text (YAML/JSON/TXT)")
     file_format: Optional[FileFormat] = Field(None, description="Format of the uploaded file")
     
     # Date range query parameters
@@ -82,6 +82,7 @@ class MissingDatesResponse(BaseModel):
     missing_dates: List[MissingDateEntry] = Field(..., description="List of missing dates")
     total_missing: int = Field(..., description="Total number of missing dates")
     date_range_analyzed: Optional[str] = Field(None, description="Date range that was analyzed")
+    debug_info: Optional[Dict[str, Any]] = Field(None, description="Optional debug information")
 
 
 # Duplicates Models
@@ -239,6 +240,14 @@ class KnownEntitiesResponse(BaseModel):
     entities: List[Dict[str, Any]] = Field(..., description="List of known entities")
     total_entities: int = Field(..., description="Total number of entities")
     entity_types: List[str] = Field(..., description="Types of entities found")
+
+
+class KnownEntityDetailResponse(BaseModel):
+    """Response model for detailed entity information"""
+    name: str = Field(..., description="Entity identifier")
+    type: str = Field(..., description="Entity type")
+    data: List[Dict[str, Any]] = Field(..., description="Content of the entity file")
+    total_records: int = Field(..., description="Total number of records in the entity")
 
 
 class DailyEntriesRequest(BaseModel):

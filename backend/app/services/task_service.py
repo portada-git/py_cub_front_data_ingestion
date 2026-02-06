@@ -12,6 +12,8 @@ from dataclasses import dataclass, asdict
 
 from app.core.exceptions import PortAdaBaseException
 from app.models.ingestion import IngestionStatus
+from app.database.database_service import DatabaseService
+from app.database.models import ProcessingRecord
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,7 @@ class TaskInfo:
     error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = None
+    session_id: Optional[str] = None  # Added for database persistence
     file_name: Optional[str] = None  # Added for frontend display
     file_size: Optional[int] = None  # Added for frontend display
     records_processed: Optional[int] = None  # Added for frontend display
@@ -88,8 +91,9 @@ class TaskService:
         self.max_concurrent_tasks = 3
         self.task_retention_hours = 24
         self._processing_lock = asyncio.Lock()
+        self.database_service: Optional[DatabaseService] = None
     
-    def create_task(
+    async def create_task(
         self,
         task_type: TaskType,
         title: str,
@@ -97,6 +101,7 @@ class TaskService:
         priority: TaskPriority = TaskPriority.NORMAL,
         metadata: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
         file_name: Optional[str] = None,
         file_size: Optional[int] = None
     ) -> str:
@@ -110,6 +115,7 @@ class TaskService:
             priority: Task priority
             metadata: Additional task metadata
             user_id: ID of user who created the task
+            session_id: ID of the current session
             file_name: Name of the file being processed (optional)
             file_size: Size of the file being processed (optional)
             
@@ -129,11 +135,33 @@ class TaskService:
             updated_at=datetime.utcnow(),
             metadata=metadata or {},
             user_id=user_id,
+            session_id=session_id,
             file_name=file_name,
             file_size=file_size
         )
         
         self.tasks[task_id] = task_info
+        
+        # PERSIST TO DATABASE
+        if self.database_service and session_id:
+            try:
+                # Map ingestion status to processing record status
+                db_status = 'uploaded'  # Equivalent to PENDING
+                
+                await self.database_service.create_processing_record(
+                    session_id=session_id,
+                    file_info={
+                        'original_filename': file_name or "unknown",
+                        'stored_filename': file_name or "unknown",
+                        'file_size': file_size or 0,
+                        'status': db_status,
+                        'metadata': metadata or {}
+                    },
+                    record_id=task_id
+                )
+                logger.info(f"Task {task_id} persisted to database history")
+            except Exception as e:
+                logger.error(f"Failed to persist task {task_id} to database: {e}")
         
         # Add to queue based on priority
         self._add_to_queue(task_id, priority)
@@ -159,6 +187,32 @@ class TaskService:
             # Normal and low priority go to the end
             self.task_queue.append(task_id)
     
+    async def _update_db_record(self, task_info: TaskInfo):
+        """Update the database record with current task info"""
+        if not self.database_service or not task_info.session_id:
+            return
+            
+        try:
+            # Map IngestionStatus to ProcessingRecord status
+            status_map = {
+                IngestionStatus.PENDING: 'uploaded',
+                IngestionStatus.PROCESSING: 'processing',
+                IngestionStatus.COMPLETED: 'completed',
+                IngestionStatus.FAILED: 'failed',
+                IngestionStatus.CANCELLED: 'cancelled'
+            }
+            db_status = status_map.get(task_info.status, 'uploaded')
+            
+            await self.database_service.update_processing_status(
+                record_id=task_info.task_id,
+                status=db_status,
+                error_message=task_info.error_message,
+                records_processed=task_info.records_processed,
+                metadata=task_info.metadata
+            )
+        except Exception as e:
+            logger.error(f"Failed to update database record for task {task_info.task_id}: {e}")
+
     async def execute_task(
         self,
         task_id: str,
@@ -186,6 +240,9 @@ class TaskService:
             task_info.started_at = datetime.utcnow()
             task_info.updated_at = datetime.utcnow()
             
+            # Update DB
+            await self._update_db_record(task_info)
+            
             logger.info(f"Starting task execution: {task_id}")
             
             # Execute the task function
@@ -202,6 +259,9 @@ class TaskService:
             if result and isinstance(result, dict) and "records_processed" in result:
                 task_info.records_processed = result["records_processed"]
             
+            # Update DB
+            await self._update_db_record(task_info)
+            
             logger.info(f"Task completed successfully: {task_id}")
             
         except Exception as e:
@@ -214,6 +274,9 @@ class TaskService:
             if isinstance(e, PortAdaBaseException):
                 task_info.error_message = e.message
                 task_info.metadata.update(e.details)
+            
+            # Update DB
+            await self._update_db_record(task_info)
             
             logger.error(f"Task failed: {task_id} - {str(e)}")
         

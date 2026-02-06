@@ -1,15 +1,12 @@
-/**
- * Login view component
- * Modern authentication interface with proper error handling
- */
-
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
-import { Database, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const LoginView: React.FC = () => {
+  const { t } = useTranslation();
   const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -31,7 +28,7 @@ const LoginView: React.FC = () => {
       await login(formData.username);
       // Navigation will happen automatically in the useAuth hook
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de autenticación');
+      setError(err instanceof Error ? err.message : t('login.authError'));
     } finally {
       setIsLoading(false);
     }
@@ -55,15 +52,15 @@ const LoginView: React.FC = () => {
           <div className="mx-auto h-24 w-24 flex items-center justify-center">
             <img 
               src="/logo.png" 
-              alt="PortAda Logo" 
+              alt={t('navigation.logoAlt')} 
               className="h-full w-full object-contain"
             />
           </div>
           <p className="mt-6 text-sm text-gray-600">
-            Sistema de Ingestión y Análisis de Datos
+            {t('login.subtitle')}
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Ingresa tu usuario para acceder al sistema
+            {t('login.instructions')}
           </p>
         </div>
 
@@ -81,7 +78,7 @@ const LoginView: React.FC = () => {
                   </div>
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800">
-                      Usuario no encontrado
+                      {t('login.userNotFound')}
                     </h3>
                     <p className="mt-1 text-sm text-red-700">{error}</p>
                   </div>
@@ -92,7 +89,7 @@ const LoginView: React.FC = () => {
             {/* Username Field */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Usuario
+                {t('login.username')}
               </label>
               <input
                 id="username"
@@ -100,7 +97,7 @@ const LoginView: React.FC = () => {
                 type="text"
                 required
                 className="input"
-                placeholder="Ingresa tu usuario"
+                placeholder={t('login.usernamePlaceholder')}
                 value={formData.username}
                 onChange={handleInputChange}
                 disabled={isLoading}
@@ -117,12 +114,12 @@ const LoginView: React.FC = () => {
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
-                    Iniciando sesión...
+                    {t('login.loggingIn')}
                   </>
                 ) : (
                   <>
                     <LogIn className="h-5 w-5 mr-2" />
-                    Iniciar sesión
+                    {t('login.login')}
                   </>
                 )}
               </button>
@@ -132,7 +129,7 @@ const LoginView: React.FC = () => {
           {/* Additional Info */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              Sistema de gestión de datos históricos de periódicos
+              {t('login.footer')}
             </p>
           </div>
         </div>
@@ -140,7 +137,7 @@ const LoginView: React.FC = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            © 2024 PortAda. Sistema de Ingestión y Análisis de Datos.
+            {t('login.copyright')}
           </p>
         </div>
       </div>

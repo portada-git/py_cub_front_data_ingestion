@@ -242,25 +242,28 @@ class DatabaseService:
     
     # Processing Record Methods
     
-    async def create_processing_record(self, session_id: str, file_info: Dict[str, Any]) -> ProcessingRecord:
+    async def create_processing_record(self, session_id: str, file_info: Dict[str, Any], record_id: Optional[str] = None) -> ProcessingRecord:
         """
         Create a new processing record.
         
         Args:
             session_id: Session ID for the record
             file_info: File information dictionary
+            record_id: Optional specific ID to use
             
         Returns:
             ProcessingRecord: Created processing record
         """
         try:
             record = ProcessingRecord(
+                id=record_id or str(uuid.uuid4()),
                 session_id=session_id,
                 original_filename=file_info.get('original_filename'),
                 stored_filename=file_info.get('stored_filename'),
                 file_size=file_info.get('file_size', 0),
                 file_path=file_info.get('file_path'),
-                metadata=file_info.get('metadata', {})
+                record_metadata=file_info.get('metadata', {}),
+                processing_status=file_info.get('status', 'uploaded')
             )
             
             async with self.get_session() as db_session:
@@ -276,14 +279,18 @@ class DatabaseService:
             raise
     
     async def update_processing_status(self, record_id: str, status: str, 
-                                     error_message: Optional[str] = None) -> bool:
+                                     error_message: Optional[str] = None,
+                                     records_processed: Optional[int] = None,
+                                     metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
-        Update processing record status.
+        Update processing record status and other fields.
         
         Args:
             record_id: Processing record ID
             status: New status
             error_message: Optional error message
+            records_processed: Optional number of records processed
+            metadata: Optional additional metadata to merge
             
         Returns:
             bool: True if updated successfully, False otherwise
@@ -299,10 +306,28 @@ class DatabaseService:
                     logger.warning(f"Processing record not found: {record_id}")
                     return False
                 
+                # Update status and error message using model helper
                 record.update_status(status, error_message)
+                
+                # Update other fields if provided
+                if records_processed is not None:
+                    record.records_processed = records_processed
+                
+                if metadata:
+                    if record.record_metadata is None:
+                        record.record_metadata = {}
+                    
+                    if isinstance(metadata, dict):
+                        # Merge metadata
+                        current_metadata = dict(record.record_metadata)
+                        current_metadata.update(metadata)
+                        record.record_metadata = current_metadata
+                    else:
+                        record.record_metadata = metadata
+                
                 await db_session.commit()
                 
-                logger.info(f"Updated processing record {record_id} status to: {status}")
+                logger.debug(f"Updated processing record {record_id} status to: {status}")
                 return True
                 
         except Exception as e:

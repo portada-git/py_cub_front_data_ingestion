@@ -14,9 +14,8 @@ RUN apt-get update && apt-get install -y \
 # Set JAVA_HOME for PySpark
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 
-# Install UV
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+# Install UV using pip
+RUN pip install --no-cache-dir uv
 
 # Copy project files
 COPY pyproject.toml ./
@@ -24,8 +23,8 @@ COPY .env ./
 COPY main.py ./
 COPY app/ ./app/
 
-# Install Python dependencies (allow building from source for pyspark)
-RUN uv sync
+# Install Python dependencies
+RUN uv sync --no-cache
 
 # Create data directory
 RUN mkdir -p /app/data

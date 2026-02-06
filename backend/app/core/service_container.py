@@ -16,6 +16,7 @@ from app.session.session_cleanup import SessionCleanupService
 from app.services.enhanced_file_handler import EnhancedFileHandler
 from app.services.concurrent_upload_manager import ConcurrentUploadManager
 from app.services.entity_validator import EntityValidator
+from app.services.task_service import task_service
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,10 @@ class ServiceContainer:
             # Entity Validator
             self.entity_validator = EntityValidator()
             logger.info("✅ Entity Validator initialized")
+            
+            # Initialize Task Service database connection
+            task_service.database_service = self.database_service
+            logger.info("✅ Task Service DB connection initialized")
             
             self._initialized = True
             logger.info("🎉 Service container initialization completed successfully")

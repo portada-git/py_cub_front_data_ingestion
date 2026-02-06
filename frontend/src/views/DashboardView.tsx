@@ -1,9 +1,5 @@
-/**
- * Dashboard view component
- * Main overview of the system status and recent activities
- */
-
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Upload, 
   BarChart3, 
@@ -25,6 +21,7 @@ interface DashboardStats {
 }
 
 const DashboardView: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats>({
     recentTasks: 0,
@@ -55,7 +52,7 @@ const DashboardView: React.FC = () => {
         systemStatus: healthCheck.status === 'healthy' ? 'healthy' : 'warning',
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading dashboard data');
+      setError(err instanceof Error ? err.message : t('dashboard.loadError'));
       setStats(prev => ({ ...prev, systemStatus: 'error' }));
     } finally {
       setIsLoading(false);
@@ -78,13 +75,13 @@ const DashboardView: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'Sistema operativo';
+        return t('dashboard.status.healthy');
       case 'warning':
-        return 'Advertencias detectadas';
+        return t('dashboard.status.warning');
       case 'error':
-        return 'Errores del sistema';
+        return t('dashboard.status.error');
       default:
-        return 'Estado desconocido';
+        return t('dashboard.status.unknown');
     }
   };
 
@@ -100,9 +97,9 @@ const DashboardView: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Bienvenido, {user?.full_name || user?.username}. Aquí tienes un resumen del sistema.
+          {t('dashboard.welcome', { name: user?.full_name || user?.username })}
         </p>
       </div>
 
@@ -112,7 +109,7 @@ const DashboardView: React.FC = () => {
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <h3 className="text-sm font-medium text-red-800">{t('common.error')}</h3>
               <p className="mt-1 text-sm text-red-700">{error}</p>
             </div>
           </div>
@@ -128,7 +125,7 @@ const DashboardView: React.FC = () => {
               {getStatusIcon(stats.systemStatus)}
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Estado del Sistema</p>
+              <p className="text-sm font-medium text-gray-900">{t('dashboard.systemStatus')}</p>
               <p className="text-xs text-gray-600">{getStatusText(stats.systemStatus)}</p>
             </div>
           </div>
@@ -141,7 +138,7 @@ const DashboardView: React.FC = () => {
               <Database className="w-5 h-5 text-green-500" />
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Entidades Conocidas</p>
+              <p className="text-sm font-medium text-gray-900">{t('dashboard.knownEntities')}</p>
               <p className="text-2xl font-bold text-green-600">{stats.totalEntities}</p>
             </div>
           </div>
@@ -154,7 +151,7 @@ const DashboardView: React.FC = () => {
               <TrendingUp className="w-5 h-5 text-purple-500" />
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-gray-900">Tareas Recientes</p>
+              <p className="text-sm font-medium text-gray-900">{t('dashboard.recentTasks')}</p>
               <p className="text-2xl font-bold text-purple-600">{stats.recentTasks}</p>
             </div>
           </div>
@@ -163,7 +160,7 @@ const DashboardView: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <button
             onClick={() => window.location.href = '/ingestion'}
@@ -171,8 +168,8 @@ const DashboardView: React.FC = () => {
           >
             <Upload className="w-6 h-6 text-primary-600 mr-3" />
             <div className="text-left">
-              <p className="font-medium text-gray-900">Subir Datos</p>
-              <p className="text-sm text-gray-600">Cargar archivos de extracción o entidades</p>
+              <p className="font-medium text-gray-900">{t('dashboard.actions.uploadData')}</p>
+              <p className="text-sm text-gray-600">{t('dashboard.actions.uploadDataDesc')}</p>
             </div>
           </button>
 
@@ -182,8 +179,8 @@ const DashboardView: React.FC = () => {
           >
             <BarChart3 className="w-6 h-6 text-primary-600 mr-3" />
             <div className="text-left">
-              <p className="font-medium text-gray-900">Analizar Fechas</p>
-              <p className="text-sm text-gray-600">Buscar fechas faltantes en los datos</p>
+              <p className="font-medium text-gray-900">{t('dashboard.actions.analyzeDates')}</p>
+              <p className="text-sm text-gray-600">{t('dashboard.actions.analyzeDatesDesc')}</p>
             </div>
           </button>
 
@@ -193,8 +190,8 @@ const DashboardView: React.FC = () => {
           >
             <FileText className="w-6 h-6 text-primary-600 mr-3" />
             <div className="text-left">
-              <p className="font-medium text-gray-900">Ver Duplicados</p>
-              <p className="text-sm text-gray-600">Revisar registros duplicados</p>
+              <p className="font-medium text-gray-900">{t('dashboard.actions.viewDuplicates')}</p>
+              <p className="text-sm text-gray-600">{t('dashboard.actions.viewDuplicatesDesc')}</p>
             </div>
           </button>
         </div>
@@ -202,24 +199,24 @@ const DashboardView: React.FC = () => {
 
       {/* System Information */}
       <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Información del Sistema</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">{t('dashboard.systemInfo')}</h2>
         <div className="space-y-3">
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-            <span className="text-sm text-gray-600">Versión del Sistema</span>
+            <span className="text-sm text-gray-600">{t('dashboard.info.version')}</span>
             <span className="text-sm font-medium text-gray-900">1.0.0</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-            <span className="text-sm text-gray-600">Usuario Actual</span>
+            <span className="text-sm text-gray-600">{t('dashboard.info.currentUser')}</span>
             <span className="text-sm font-medium text-gray-900">{user?.username}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-            <span className="text-sm text-gray-600">Rol</span>
+            <span className="text-sm text-gray-600">{t('dashboard.info.role')}</span>
             <span className="text-sm font-medium text-gray-900">{user?.role}</span>
           </div>
           <div className="flex justify-between items-center py-2">
-            <span className="text-sm text-gray-600">Última Actualización</span>
+            <span className="text-sm text-gray-600">{t('dashboard.info.lastUpdate')}</span>
             <span className="text-sm font-medium text-gray-900">
-              {new Date().toLocaleDateString('es-ES')}
+              {new Date().toLocaleDateString()}
             </span>
           </div>
         </div>

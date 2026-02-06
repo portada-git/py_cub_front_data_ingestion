@@ -15,7 +15,7 @@ from app.models.analysis import (
     DuplicatesRequest, DuplicatesResponse, DuplicateDetailsResponse,
     StorageMetadataRequest, StorageMetadataResponse, FieldLineageResponse,
     ProcessMetadataRequest, ProcessMetadataResponse,
-    KnownEntitiesResponse,
+    KnownEntitiesResponse, KnownEntityDetailResponse,
     DailyEntriesRequest, DailyEntriesResponse
 )
 from app.services.portada_service import portada_service
@@ -40,9 +40,11 @@ async def get_publications(current_user: dict = Depends(get_current_user)):
             publications = [
                 {"code": "db", "name": "Diario de Barcelona", "full_name": "Diario de Barcelona"},
                 {"code": "dm", "name": "Diario de la Marina", "full_name": "Diario de la Marina"},
-                {"code": "sm", "name": "Semanario Mercantil", "full_name": "Semanario Mercantil"},
-                {"code": "lp", "name": "La Prensa", "full_name": "La Prensa"},
-                {"code": "el", "name": "El Liberal", "full_name": "El Liberal"}
+                {"code": "sm", "name": "Le semaphore de Marseille", "full_name": "Le semaphore de Marseille"},
+                {"code": "gm", "name": "Gaceta Mercantil", "full_name": "Gaceta Mercantil"},
+                {"code": "bp", "name": "British Packet", "full_name": "British Packet"},
+                {"code": "en", "name": "El Nacional", "full_name": "El Nacional"},
+                {"code": "lp", "name": "La Prensa", "full_name": "La Prensa"}
             ]
             
             return {
@@ -125,22 +127,22 @@ async def get_known_entities(current_user: dict = Depends(get_current_user)):
             # If no real files found, provide some realistic sample data
             if not entities:
                 entities = [
-                    {"name": "personas_historicas", "type": "PERSON", "count": 1247},
-                    {"name": "organizaciones_comerciales", "type": "ORG", "count": 892},
-                    {"name": "lugares_geograficos", "type": "LOC", "count": 2341},
-                    {"name": "fechas_importantes", "type": "DATE", "count": 5678},
-                    {"name": "productos_comerciales", "type": "PRODUCT", "count": 456},
-                    {"name": "monedas_historicas", "type": "MONEY", "count": 123}
+                    {"name": "flag", "type": "nacionalidad", "count": 0},
+                    {"name": "comodity", "type": "mercancias", "count": 0},
+                    {"name": "ship_type", "type": "tipos de barcos", "count": 0},
+                    {"name": "unit", "type": "unidades de medida", "count": 0},
+                    {"name": "port", "type": "puertos", "count": 0},
+                    {"name": "master_role", "type": "roles maestros", "count": 0}
                 ]
             
         except Exception as e:
             logger.warning(f"Could not get real entities data: {e}, using fallback data")
             # Fallback to enhanced mock data
             entities = [
-                {"name": "personas_historicas", "type": "PERSON", "count": 1247},
-                {"name": "organizaciones_comerciales", "type": "ORG", "count": 892},
-                {"name": "lugares_geograficos", "type": "LOC", "count": 2341},
-                {"name": "fechas_importantes", "type": "DATE", "count": 5678}
+                {"name": "flag", "type": "nacionalidad", "count": 0},
+                {"name": "comodity", "type": "mercancias", "count": 0},
+                {"name": "ship_type", "type": "tipos de barcos", "count": 0},
+                {"name": "unit", "type": "unidades de medida", "count": 0}
             ]
         
         entity_types = list(set(entity["type"] for entity in entities))
@@ -156,6 +158,103 @@ async def get_known_entities(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error retrieving known entities: {str(e)}")
 
 
+@router.get("/known-entities/{name}", response_model=KnownEntityDetailResponse)
+async def get_known_entity_details(name: str, current_user: dict = Depends(get_current_user)):
+    """Get detailed records for a specific known entity"""
+    try:
+        logger.info(f"Getting details for known entity: {name}")
+        
+        entities_folder = os.path.join(settings.PORTADA_BASE_PATH, "known_entities")
+        data = []
+        entity_type = "UNKNOWN"
+        
+        # Look for the file in the entities folder
+        file_found = False
+        if os.path.exists(entities_folder):
+            for ext in ['.yaml', '.yml', '.json']:
+                file_path = os.path.join(entities_folder, f"{name}{ext}")
+                if os.path.exists(file_path):
+                    file_found = True
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            if ext == '.json':
+                                content = json.load(f)
+                            else:
+                                content = yaml.safe_load(f)
+                            
+                            # Normalize content to a list of dicts
+                            if isinstance(content, list):
+                                data = content
+                            elif isinstance(content, dict):
+                                # If it's a dict, try to find a list inside or convert to list of items
+                                if 'items' in content and isinstance(content['items'], list):
+                                    data = content['items']
+                                else:
+                                    data = [{"key": k, "value": v} for k, v in content.items()]
+                            
+                            # Try to determine type from name (consistent with get_known_entities)
+                            if "person" in name.lower():
+                                entity_type = "PERSON"
+                            elif "org" in name.lower() or "company" in name.lower():
+                                entity_type = "ORG"
+                            elif "loc" in name.lower() or "place" in name.lower():
+                                entity_type = "LOC"
+                            elif "date" in name.lower():
+                                entity_type = "DATE"
+                            elif name.lower() in ["flag", "comodity", "ship_type", "unit", "port", "master_role"]:
+                                # Special mapping for known types if needed
+                                type_map = {
+                                    "flag": "nacionalidad",
+                                    "comodity": "mercancias",
+                                    "ship_type": "tipos de barcos",
+                                    "unit": "unidades de medida",
+                                    "port": "puertos",
+                                    "master_role": "roles maestros"
+                                }
+                                entity_type = type_map.get(name.lower(), "ENTITY")
+                            
+                    except Exception as e:
+                        logger.error(f"Error reading entity file {file_path}: {e}")
+                        raise HTTPException(status_code=500, detail=f"Error reading entity file: {str(e)}")
+                    break
+        
+        if not file_found:
+            # Check for mock data if file not found (for dev environment)
+            mock_entities = {
+                "flag": [{"code": "ES", "name": "España"}, {"code": "FR", "name": "Francia"}],
+                "comodity": [{"id": 1, "name": "Trigo"}, {"id": 2, "name": "Maíz"}],
+                "ship_type": [{"type": "Vapor", "description": "Barco de vapor"}, {"type": "Vela", "description": "Barco de vela"}],
+                "port": [{"name": "Barcelona", "country": "España"}, {"name": "Marsella", "country": "Francia"}]
+            }
+            
+            if name.lower() in mock_entities:
+                data = mock_entities[name.lower()]
+                type_map = {
+                    "flag": "nacionalidad",
+                    "comodity": "mercancias",
+                    "ship_type": "tipos de barcos",
+                    "unit": "unidades de medida",
+                    "port": "puertos",
+                    "master_role": "roles maestros"
+                }
+                entity_type = type_map.get(name.lower(), "ENTITY")
+            else:
+                raise HTTPException(status_code=404, detail=f"Entity {name} not found")
+        
+        return KnownEntityDetailResponse(
+            name=name,
+            type=entity_type,
+            data=data,
+            total_records=len(data)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting entity details: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving entity details: {str(e)}")
+
+
 @router.post("/daily-entries", response_model=DailyEntriesResponse)
 async def get_daily_entries(
     request: DailyEntriesRequest,
@@ -169,8 +268,9 @@ async def get_daily_entries(
         try:
             layer_news = portada_service._get_news_layer()
             
-            # Read real data from ship_entries table
-            df = layer_news.read_raw_data("ship_entries")
+            # Use default data path
+            default_data_path = "ship_entries"
+            df = layer_news.read_raw_data(default_data_path)
             
             # Filter by publication (case-insensitive)
             publication_upper = request.publication.upper()
@@ -196,15 +296,24 @@ async def get_daily_entries(
             total_entries = 0
             
             for row in daily_results:
-                date_str = row["publication_date"]
-                count = row["count"]
-                
-                daily_counts.append({
-                    "date": date_str,
-                    "count": count,
-                    "publication": request.publication
-                })
-                total_entries += count
+                try:
+                    # Handle both dict-like and object-like Rows
+                    if isinstance(row, dict):
+                        date_str = row.get("publication_date")
+                        count = row.get("count")
+                    else:
+                        date_str = getattr(row, "publication_date")
+                        count = getattr(row, "count")
+                    
+                    if date_str:
+                        daily_counts.append({
+                            "date": date_str,
+                            "count": count,
+                            "publication": request.publication
+                        })
+                        total_entries += count
+                except (AttributeError, KeyError):
+                    continue
             
             # Determine actual date range from data
             if daily_counts:
@@ -261,9 +370,10 @@ async def get_missing_dates(
         # Get missing dates using PortAda service
         missing_dates = await portada_service.get_missing_dates(
             publication_name=request.publication_name,
-            data_path=request.data_path,
+            data_path="ship_entries",
             start_date=request.start_date,
-            end_date=request.end_date
+            end_date=request.end_date,
+            date_and_edition_list=request.date_and_edition_list
         )
         
         # Determine date range analyzed
@@ -276,7 +386,15 @@ async def get_missing_dates(
             query_type=query_type,
             missing_dates=missing_dates,
             total_missing=len(missing_dates),
-            date_range_analyzed=date_range_analyzed
+            date_range_analyzed=date_range_analyzed,
+            debug_info={
+                "requested_publication": request.publication_name,
+                "start_date": request.start_date,
+                "end_date": request.end_date,
+                "has_file_list": bool(request.date_and_edition_list),
+                "data_path": "ship_entries",
+                "engine": "portada-library-boat-news"
+            }
         )
         
     except PortAdaBaseException as e:
@@ -297,7 +415,7 @@ async def get_duplicates(
 ):
     """Get duplicates metadata with optional filtering"""
     try:
-        logger.info("Getting duplicates metadata")
+        logger.info(f"Getting duplicates metadata for publication: {request.publication}")
         
         # Get duplicates using PortAda service
         duplicates = await portada_service.get_duplicates_metadata(
