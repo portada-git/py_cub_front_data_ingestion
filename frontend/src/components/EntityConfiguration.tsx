@@ -1,9 +1,5 @@
-/**
- * Entity configuration component
- * Handles configuration for known entities ingestion
- */
-
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Database, Info } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -24,26 +20,28 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
   disabled = false,
   className = ''
 }) => {
+  const { t } = useTranslation();
+
   const commonEntityNames = [
     {
       name: 'known_entities',
-      description: 'Entidades generales conocidas',
-      example: 'Nombres de personas, lugares, organizaciones'
+      description: t('ingestion.entities.general'),
+      example: t('ingestion.entities.generalExample')
     },
     {
       name: 'ship_entities',
-      description: 'Entidades relacionadas con embarcaciones',
-      example: 'Nombres de barcos, puertos, compañías navieras'
+      description: t('ingestion.entities.ship'),
+      example: t('ingestion.entities.shipExample')
     },
     {
       name: 'location_entities',
-      description: 'Entidades de ubicación geográfica',
-      example: 'Ciudades, países, regiones, puertos'
+      description: t('ingestion.entities.location'),
+      example: t('ingestion.entities.locationExample')
     },
     {
       name: 'person_entities',
-      description: 'Entidades de personas',
-      example: 'Nombres de capitanes, comerciantes, autoridades'
+      description: t('ingestion.entities.person'),
+      example: t('ingestion.entities.personExample')
     }
   ];
 
@@ -51,17 +49,17 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
     <div className={clsx('space-y-4', className)}>
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Configuración de Entidades
+          {t('ingestion.entities.configuration')}
         </h3>
         <p className="text-sm text-gray-600">
-          Configura el nombre y tipo de entidades que se van a ingerir
+          {t('ingestion.entities.configurationSubtitle')}
         </p>
       </div>
 
       {/* Entity Name Input */}
       <div>
         <label htmlFor="entityName" className="block text-sm font-medium text-gray-700 mb-2">
-          Nombre de Entidad
+          {t('ingestion.entities.entityName')}
         </label>
         <input
           type="text"
@@ -73,17 +71,17 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
             'input',
             disabled && 'bg-gray-50 cursor-not-allowed'
           )}
-          placeholder="Ej: known_entities, ship_entities"
+          placeholder={t('ingestion.entities.entityNamePlaceholder')}
         />
         <p className="text-xs text-gray-500 mt-1">
-          Identificador único para el tipo de entidades (usar snake_case)
+          {t('ingestion.entities.entityNameHelp')}
         </p>
       </div>
 
       {/* Common Entity Types */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Tipos Comunes de Entidades
+          {t('ingestion.entities.commonTypes')}
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {commonEntityNames.map((entity) => (
@@ -139,7 +137,7 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
       {onDataPathChange && (
         <div>
           <label htmlFor="dataPath" className="block text-sm font-medium text-gray-700 mb-2">
-            Ruta de Datos (Opcional)
+            {t('ingestion.entities.dataPath')}
           </label>
           <input
             type="text"
@@ -151,10 +149,10 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
               'input',
               disabled && 'bg-gray-50 cursor-not-allowed'
             )}
-            placeholder="Ej: entities/known_entities"
+            placeholder={t('ingestion.entities.dataPathPlaceholder')}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Ruta específica en el Delta Lake donde se almacenarán las entidades
+            {t('ingestion.entities.dataPathHelp')}
           </p>
         </div>
       )}
@@ -165,13 +163,13 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
           <Info className="w-5 h-5 text-blue-400 mr-3 mt-0.5 flex-shrink-0" />
           <div>
             <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Información sobre Entidades Conocidas
+              {t('ingestion.entities.infoTitle')}
             </h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Las entidades deben estar en formato YAML válido</li>
-              <li>• Cada entidad debe tener un identificador único</li>
-              <li>• Se pueden incluir metadatos adicionales para cada entidad</li>
-              <li>• Las entidades se utilizan para mejorar la precisión del análisis</li>
+              <li>{t('ingestion.entities.info1')}</li>
+              <li>{t('ingestion.entities.info2')}</li>
+              <li>{t('ingestion.entities.info3')}</li>
+              <li>{t('ingestion.entities.info4')}</li>
             </ul>
           </div>
         </div>
@@ -181,12 +179,12 @@ const EntityConfiguration: React.FC<EntityConfigurationProps> = ({
       {entityName && (
         <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
           <h4 className="text-sm font-medium text-gray-900 mb-2">
-            Configuración Actual
+            {t('ingestion.entities.currentConfiguration')}
           </h4>
           <div className="space-y-1 text-sm text-gray-600">
-            <p><span className="font-medium">Nombre:</span> {entityName}</p>
+            <p><span className="font-medium">{t('ingestion.entities.name')}:</span> {entityName}</p>
             {dataPath && (
-              <p><span className="font-medium">Ruta:</span> {dataPath}</p>
+              <p><span className="font-medium">{t('ingestion.entities.path')}:</span> {dataPath}</p>
             )}
           </div>
         </div>

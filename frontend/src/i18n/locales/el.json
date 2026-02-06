@@ -10,6 +10,8 @@
     "knownEntities": "Ανεβασμένες γνωστές οντότητες",
     "storageMetadata": "Μεταδεδομένα αποθήκευσης",
     "processMetadata": "Μεταδεδομένα εκτέλεσης διαδικασιών",
+    "processes": "Διαδικασίες",
+    "configuration": "Μεταδεδομένα",
     "logout": "Αποσύνδεση",
     "openMenu": "Άνοιγμα μενού πλοήγησης",
     "mainNavigation": "Κύρια πλοήγηση",

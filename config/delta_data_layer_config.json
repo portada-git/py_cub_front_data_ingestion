@@ -1,0 +1,15 @@
+{
+  "spark": {
+    "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
+    "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+  },
+  "metadata": {
+    "log_paths": {
+      "storage_log": "metadata/storage_log",
+      "process_log": "metadata/process_log",
+      "duplicates_log": "metadata/duplicates_log",
+      "duplicates_records": "metadata/duplicates_records",
+      "field_lineage_log": "metadata/field_lineage_log"
+    }
+  }
+}

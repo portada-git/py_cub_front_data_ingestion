@@ -46,6 +46,11 @@ export const useAuth = () => {
       }
 
       // Check token expiry without making API call
+      // SKIPPED: Token is an API Key (username), not a JWT.
+      // We rely on validateTokenWithServer for actual validation.
+      return true;
+
+      /*
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const expiryTime = payload.exp ? new Date(payload.exp * 1000) : null;
@@ -62,6 +67,7 @@ export const useAuth = () => {
         await handleLogout();
         return false;
       }
+      */
     } catch (error) {
       console.error('Auth check failed:', error);
       await handleLogout();

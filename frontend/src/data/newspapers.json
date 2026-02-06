@@ -4,37 +4,37 @@
       "id": "db",
       "name": "Diario de Barcelona",
       "code": "DB",
-      "description": "Diario de Barcelona - Periódico histórico catalán"
+      "description": "Diario de Barcelona - Historic Catalan newspaper"
     },
     {
       "id": "dm",
       "name": "Diario de la Marina",
       "code": "DM",
-      "description": "Diario de la Marina - Periódico histórico cubano"
+      "description": "Diario de la Marina - Historic Cuban newspaper"
     },
     {
       "id": "sm",
       "name": "Semanario de Málaga",
       "code": "SM",
-      "description": "Semanario de Málaga - Publicación histórica andaluza"
+      "description": "Semanario de Málaga - Historic Andalusian publication"
     },
     {
       "id": "gaceta",
       "name": "Gaceta de Madrid",
       "code": "GM",
-      "description": "Gaceta de Madrid - Boletín oficial histórico"
+      "description": "Gaceta de Madrid - Historic official bulletin"
     },
     {
       "id": "liberal",
       "name": "El Liberal",
       "code": "EL",
-      "description": "El Liberal - Periódico histórico español"
+      "description": "El Liberal - Historic Spanish newspaper"
     },
     {
       "id": "imparcial",
       "name": "El Imparcial",
       "code": "EI",
-      "description": "El Imparcial - Diario histórico madrileño"
+      "description": "El Imparcial - Historic Madrid newspaper"
     }
   ]
 }

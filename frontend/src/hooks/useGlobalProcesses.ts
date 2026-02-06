@@ -22,7 +22,7 @@ interface GlobalProcess {
 }
 
 export const useGlobalProcesses = (options?: { enabled?: boolean }) => {
-  const { tasks, updateTask, removeTask } = useUploadStore();
+  const { tasks, updateTask } = useUploadStore();
   const intervalRef = useRef<number>();
   const finalStatusCheckedRef = useRef<Set<string>>(new Set());
   const enabled = options?.enabled !== false;
