@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useCallback, useRef } from "react";
-import { CheckCircle, X, RotateCcw, Minimize2, Maximize2 } from "lucide-react";
+import { X, RotateCcw, Minimize2, Maximize2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useUploadStore, UploadTask } from "../store/useUploadStore";
 import { useNotificationStore } from "../store/useStore";

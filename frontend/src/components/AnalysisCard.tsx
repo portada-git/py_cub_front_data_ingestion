@@ -3,15 +3,15 @@
  * Provides a consistent dark-themed card layout for analysis views
  */
 
-import React from 'react';
-import { LucideIcon } from 'lucide-react';
-import { clsx } from 'clsx';
+import React from "react";
+import { LucideIcon } from "lucide-react";
+import { clsx } from "clsx";
 
 interface AnalysisCardProps {
   title: string;
   subtitle: string;
   icon: LucideIcon;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
 }
 
@@ -20,13 +20,15 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
   subtitle,
   icon: Icon,
   children,
-  className
+  className,
 }) => {
   return (
-    <div className={clsx(
-      'bg-white border border-gray-200 rounded-2xl p-6 text-gray-900 shadow-sm',
-      className
-    )}>
+    <div
+      className={clsx(
+        "bg-white border border-gray-200 rounded-2xl p-6 text-gray-900 shadow-sm",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center mb-6">
         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
@@ -39,9 +41,7 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
       </div>
 
       {/* Content */}
-      <div className="space-y-6">
-        {children}
-      </div>
+      <div className="space-y-6">{children}</div>
     </div>
   );
 };

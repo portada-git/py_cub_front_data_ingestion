@@ -22,6 +22,6 @@ app.include_router(ingest.router, prefix="/api/v1/ingest", tags=["Ingestion"])
 app.include_router(queries.router, prefix="/api/v1/queries", tags=["Queries"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 
-@app.get("/health")
+@app.get("/api/v1/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "healthy", "service": "backend"}

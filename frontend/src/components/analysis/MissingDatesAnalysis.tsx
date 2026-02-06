@@ -146,7 +146,7 @@ const MissingDatesAnalysis: React.FC = () => {
       const response = await apiService.analyzeMissingDatesRange({
         start_date: dateRange.startDate,
         end_date: dateRange.endDate,
-        publication: dateRange.publication || undefined,
+        publication: dateRange.publication || "",
       });
       setResults(response as any);
 

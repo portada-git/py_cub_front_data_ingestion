@@ -13,6 +13,7 @@ import {
   DuplicatesRequest,
   DuplicatesResponse,
   KnownEntitiesResponse,
+  KnownEntityDetailResponse,
   DailyEntriesRequest,
   DailyEntriesResponse,
   PublicationsResponse
@@ -407,9 +408,9 @@ class ApiService {
   async uploadFile(
     file: File, 
     ingestionType: 'extraction_data' | 'known_entities',
-    publication?: string,
+    _publication?: string,
     entityName?: string,
-    dataPathDeltaLake?: string,
+    _dataPathDeltaLake?: string,
     onProgress?: (progress: number) => void
   ): Promise<IngestionResponse> {
     const formData = new FormData();
@@ -436,7 +437,7 @@ class ApiService {
         records_processed: response.count || 1,
         started_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),
-        file_validation: { is_valid: true, errors: [], warnings: [] }
+        file_validation: { is_valid: true, errors: [], warnings: [] } as any // force type
     };
   }
 
@@ -458,11 +459,21 @@ class ApiService {
     return this.request(`/audit/process${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getIngestionTasks(status?: string) {
+  async getIngestionTasks(_status?: string) {
     return this.request(`/audit/process`);
   }
 
-  async cancelTask(taskId: string) {
+  // Alias for backward compatibility
+  async getIngestionStatus(_status?: string): Promise<IngestionStatusResponse> {
+    return this.request<IngestionStatusResponse>(`/audit/process`);
+  }
+
+  // Alias for backward compatibility
+  async getIngestionHistory(params?: any) {
+    return this.listUploadFiles(params);
+  }
+
+  async cancelTask(_taskId: string) {
     // Not implemented in backend
     return Promise.resolve({ success: true, message: 'Not supported' });
   }
@@ -480,8 +491,8 @@ class ApiService {
     return this.request<KnownEntitiesResponse>('/queries/known-entities');
   }
 
-  async getKnownEntityDetail(name: string): Promise<KnownEntitiesResponse> {
-    return this.request<KnownEntitiesResponse>(`/queries/known-entities/${name}`);
+  async getKnownEntityDetail(name: string): Promise<KnownEntityDetailResponse> {
+    return this.request<KnownEntityDetailResponse>(`/queries/known-entities/${name}`);
   }
 
   async getDailyEntries(request: DailyEntriesRequest): Promise<DailyEntriesResponse> {
@@ -540,16 +551,16 @@ class ApiService {
     if(request.start_date) params.append('start_date', request.start_date);
     if(request.end_date) params.append('end_date', request.end_date);
 
-    return this.request<MissingDatesResponse>(`/queries/gaps?${params.toString()}`, {
+    return this.request<any>(`/queries/gaps?${params.toString()}`, {
       method: 'GET'
-    });
+    }) as unknown as Promise<MissingDatesResponse>;
   }
 
   async uploadDatesFile(file: File, publicationName: string, onProgress?: (progress: number) => void) {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.uploadRequest(`/queries/gaps/file?publication=${encodeURIComponent(publicationName)}`, formData, onProgress);
+    return this.uploadRequest<MissingDatesResponse>(`/queries/gaps/file?publication=${encodeURIComponent(publicationName)}`, formData, onProgress);
   }
 
   // Analysis - Duplicates
@@ -626,7 +637,7 @@ class ApiService {
   }
 
   async getFieldLineage(storedLogId: string) {
-    return this.request(`/metadata/lineage?stored_log_id=${storedLogId}`);
+    return this.request<any>(`/metadata/lineage?stored_log_id=${storedLogId}`);
   }
 
   async getMetadataPublications() {

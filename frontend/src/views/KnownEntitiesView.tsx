@@ -79,7 +79,7 @@ const KnownEntitiesView: React.FC = () => {
     });
 
     if (result) {
-      setEntityDetail(result);
+      setEntityDetail(result as KnownEntityDetailResponse);
     }
 
     setIsDetailLoading(false);

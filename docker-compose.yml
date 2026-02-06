@@ -7,7 +7,8 @@ services:
       - "6379:6379"
 
   api:
-    build: .
+    build:
+      context: ./portada_backend
     ports:
       - "8000:8000"
     environment:
@@ -17,12 +18,24 @@ services:
       - CONFIG_PATH=/app/config/delta_data_layer_config.json
     volumes:
       # Map the physical Delta Lake path from host to container
-      - ../delta_lake:/app/delta_lake
+      - ./delta_lake:/app/delta_lake
       # Map a config folder if you have one, or create it empty for now
-      - ../config:/app/config
-      - ../dummy_data:/data/dummy_data 
+      - ./config:/app/config
+      - ./dummy_data:/data/dummy_data
     depends_on:
       - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    depends_on:
+      - api
 
 volumes:
   redis_data:

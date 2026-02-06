@@ -12,7 +12,6 @@ import { DuplicatesResponse } from "../types";
 import AnalysisCard from "../components/AnalysisCard";
 import QueryForm from "../components/QueryForm";
 import PublicationSelector from "../components/PublicationSelector";
-import { InputField } from "../components/FormField";
 import { ResultsCard, InfoMessage } from "../components/ResultsCard";
 import {
   NoDataState,
